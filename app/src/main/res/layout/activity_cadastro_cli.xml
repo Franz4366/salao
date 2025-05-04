@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/fundo"
+    android:fitsSystemWindows="false"
+    tools:context=".CadastroCli">
+
+    <FrameLayout
+        android:id="@+id/rectangle_3"
+        android:layout_width="365dp"
+        android:layout_height="432.66dp"
+        android:background="@drawable/corners"
+        app:layout_constraintEnd_toEndOf="@id/main"
+        app:layout_constraintStart_toStartOf="@id/main"
+        app:layout_constraintTop_toTopOf="@id/main"
+        android:layout_marginTop="100dp"
+        android:elevation="5dp">
+
+        <TextView
+            android:id="@+id/cadastro_de"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cadastro_de"
+            android:textAppearance="@style/cadastro_de"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="20dp"/>
+
+        <View
+            android:id="@+id/nome"
+            android:layout_width="331.54dp"
+            android:layout_height="49.53dp"
+            android:background="@drawable/rectangle_4"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="80dp"/>
+
+        <View
+            android:id="@+id/telefone"
+            android:layout_width="331.54dp"
+            android:layout_height="49.53dp"
+            android:background="@drawable/rectangle_4"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="140dp"/>
+
+        <View
+            android:id="@+id/email"
+            android:layout_width="331.54dp"
+            android:layout_height="49.53dp"
+            android:background="@drawable/rectangle_4"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="200dp"/>
+
+        <View
+            android:id="@+id/data_nasc"
+            android:layout_width="331.54dp"
+            android:layout_height="49.53dp"
+            android:background="@drawable/rectangle_4"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="260dp"/>
+
+        <FrameLayout
+            android:id="@+id/rectangle_6"
+            android:layout_width="321.4dp"
+            android:layout_height="53.58dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="360dp"
+            android:background="@drawable/rectangle_6"
+            android:elevation="4dp">
+
+            <TextView
+                android:id="@+id/agendar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/salvar"
+                android:textAppearance="@style/salvar"
+                android:layout_gravity="center"/>
+
+        </FrameLayout>
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/group_35"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="0dp"
+        android:paddingBottom="8dp"
+        android:background="@drawable/rectangle_7"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <View
+            android:id="@+id/rectangle_5"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="@drawable/rectangle_7"/>
+
+        <ImageView
+            android:id="@+id/icon_home"
+            android:layout_width="38dp"
+            android:layout_height="34dp"
+            android:background="@drawable/ic_home"
+            android:layout_marginStart="14dp"
+            android:layout_marginTop="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/acessar_a_tela_inicial"/>
+
+        <ImageView
+            android:id="@+id/icon_agendar"
+            android:layout_width="38dp"
+            android:layout_height="34dp"
+            android:background="@drawable/ic_calendar"
+            android:layout_marginStart="100dp"
+            android:layout_marginTop="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/acessar_a_tela_de_agendamento"/>
+
+        <ImageView
+            android:id="@+id/icon_agenda"
+            android:layout_width="38dp"
+            android:layout_height="34dp"
+            android:background="@drawable/ic_agendar"
+            android:layout_marginStart="190dp"
+            android:layout_marginTop="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/acessar_a_tela_de_cadastro"/>
+
+        <ImageView
+            android:id="@+id/icon_add"
+            android:layout_width="38dp"
+            android:layout_height="34dp"
+            android:background="@drawable/ic_add"
+            android:layout_marginStart="268dp"
+            android:layout_marginTop="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/acessar_a_tela_de_cadastro"/>
+
+        <ImageView
+            android:id="@+id/icon_user"
+            android:layout_width="38dp"
+            android:layout_height="34dp"
+            android:background="@drawable/ic_user"
+            android:layout_marginStart="344dp"
+            android:layout_marginTop="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/acessar_a_tela_usuario"/>
+    </FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

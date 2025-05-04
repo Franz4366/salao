@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/grey"
+    android:fitsSystemWindows="false"
+    tools:context=".Agendamento">
+
+    <!-- Calendário com navegação -->
+    <FrameLayout
+        android:id="@+id/rectangle_3"
+        android:layout_width="440dp"
+        android:layout_height="200dp"
+        app:layout_constraintTop_toTopOf="@id/main"
+        app:layout_constraintStart_toStartOf="@id/main"
+        app:layout_constraintEnd_toEndOf="@id/main"
+        android:background="@drawable/rectangle_8">
+
+        <!-- Navegação de mês -->
+        <LinearLayout
+            android:id="@+id/mes_navegacao"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:padding="16dp">
+
+            <ImageView
+                android:id="@+id/seta_anterior"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="100dp"
+                android:src="@drawable/ic_seta_esquerda"
+                android:contentDescription="@string/m_s_anterior"
+                android:padding="8dp" />
+
+            <TextView
+                android:id="@+id/tv_mes"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="@string/abril"
+                android:textColor="@color/brown"
+                android:textSize="18sp"
+                android:gravity="center"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/seta_proximo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="100dp"
+                android:src="@drawable/ic_seta_direita"
+                android:contentDescription="@string/pr_ximo_m_s"
+                android:padding="8dp" />
+        </LinearLayout>
+
+        <!-- RecyclerView para o calendário -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/calendarRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="90dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:padding="8dp"
+            android:clipToPadding="false"
+            android:overScrollMode="never" />
+    </FrameLayout>
+
+    <!-- Pesquisa -->
+    <View
+        android:id="@+id/pesquisa"
+        android:layout_width="260dp"
+        android:layout_height="53dp"
+        app:layout_constraintTop_toBottomOf="@id/rectangle_3"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/rectangle_4"
+        android:alpha="0.45" />
+
+    <!-- Resultado da pesquisa -->
+    <View
+        android:id="@+id/result_pesquisa"
+        android:layout_width="349dp"
+        android:layout_height="128dp"
+        app:layout_constraintTop_toBottomOf="@id/pesquisa"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/rectangle_4"
+        android:alpha="0.45" />
+
+    <!-- Campo de hora -->
+    <View
+        android:id="@+id/cx_hora"
+        android:layout_width="212dp"
+        android:layout_height="54dp"
+        app:layout_constraintTop_toBottomOf="@id/result_pesquisa"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"
+        android:background="#D9D9D9" />
+
+    <!-- Texto Profissional -->
+    <TextView
+        android:id="@+id/profissiona"
+        android:layout_width="120dp"
+        android:layout_height="22dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/cx_hora"
+        android:layout_marginStart="17dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/profissional"
+        android:textAppearance="@style/profissional"
+        android:gravity="center_horizontal|top" />
+
+    <!-- Avatares dos profissionais -->
+    <View
+        android:id="@+id/ellipse_14"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        app:layout_constraintTop_toBottomOf="@id/profissiona"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="10dp"
+        android:layout_marginStart="16dp"
+        android:background="@drawable/ellipse_14" />
+
+    <View
+        android:id="@+id/ellipse_15"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        app:layout_constraintTop_toBottomOf="@id/profissiona"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="10dp"
+        android:layout_marginStart="116dp"
+        android:background="@drawable/ellipse_14" />
+
+    <View
+        android:id="@+id/ellipse_16"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        app:layout_constraintTop_toBottomOf="@id/profissiona"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="10dp"
+        android:layout_marginStart="215dp"
+        android:background="@drawable/ellipse_14" />
+
+    <View
+        android:id="@+id/ellipse_17"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        app:layout_constraintTop_toBottomOf="@id/profissiona"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="10dp"
+        android:layout_marginStart="316dp"
+        android:background="@drawable/ellipse_14" />
+
+    <!-- Botão Agendar -->
+    <FrameLayout
+        android:id="@+id/bt_agendar"
+        android:layout_width="321.4dp"
+        android:layout_height="53.58dp"
+        app:layout_constraintBottom_toTopOf="@id/group_35"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/rectangle_6">
+
+        <TextView
+            android:id="@+id/agendar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/agendar"
+            android:textAppearance="@style/agendar"
+            android:layout_gravity="center"
+            android:elevation="2dp" />
+    </FrameLayout>
+
+    <!-- Barra de navegação inferior -->
+    <FrameLayout
+        android:id="@+id/group_35"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="0dp"
+        android:paddingBottom="8dp"
+        android:background="@drawable/rectangle_7"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <View
+            android:id="@+id/rectangle_5"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="@drawable/rectangle_7" />
+
+        <ImageView
+            android:id="@+id/icon_home"
+            android:layout_width="38dp"
+            android:layout_height="34dp"
+            android:background="@drawable/ic_home"
+            android:layout_marginStart="14dp"
+            android:layout_marginTop="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/acessar_a_tela_inicial"/>
+
+        <ImageView
+            android:id="@+id/icon_agendar"
+            android:layout_width="38dp"
+            android:layout_height="34dp"
+            android:background="@drawable/ic_calendar"
+            android:layout_marginStart="100dp"
+            android:layout_marginTop="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/acessar_a_tela_de_agendamento"/>
+
+        <ImageView
+            android:id="@+id/icon_agenda"
+            android:layout_width="38dp"
+            android:layout_height="34dp"
+            android:background="@drawable/ic_agendar"
+            android:layout_marginStart="190dp"
+            android:layout_marginTop="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/acessar_a_tela_de_cadastro"/>
+
+        <ImageView
+            android:id="@+id/icon_add"
+            android:layout_width="38dp"
+            android:layout_height="34dp"
+            android:background="@drawable/ic_add"
+            android:layout_marginStart="268dp"
+            android:layout_marginTop="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/acessar_a_tela_de_cadastro"/>
+
+        <ImageView
+            android:id="@+id/icon_user"
+            android:layout_width="38dp"
+            android:layout_height="34dp"
+            android:background="@drawable/ic_user"
+            android:layout_marginStart="344dp"
+            android:layout_marginTop="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/acessar_a_tela_usuario"/>
+    </FrameLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

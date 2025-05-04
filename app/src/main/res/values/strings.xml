@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">alexandra</string>
+    <string name="bem_vindas_">Bem vindas ao nosso salão.\n Entre e descubra um mundo feito\n para você!</string>
+    <string name="email">E-mail</string>
+    <string name="senha">Senha</string>
+    <string name="esqueceu_su">Esqueceu sua senha?</string>
+    <string name="profissional">Profissional</string>
+    <string name="seg">Seg</string>
+    <string name="_12">12</string>
+    <string name="oi">Oi</string>
+    <string name="alexandra">Alexandra</string>
+    <string name="hoje_o_aniv">Hoje é o aniversario de ...</string>
+    <string name="enviar">Enviar mensagem</string>
+    <string name="sua_agenda">Sua Agenda</string>
+    <string name="agendar">Agendar</string>
+    <string name="cadastro_de">Cadastro de Clientes</string>
+    <string name="salvar">Salvar</string>
+    <string name="acessar_a_tela_de_cadastro">acessar a tela de cadastro</string>
+    <string name="acessar_a_tela_de_agendamento">acessar a tela de agendamento</string>
+    <string name="acessar_a_tela_usuario">acessar_a_tela_usuario</string>
+    <string name="acessar_a_tela_inicial">acessar_a_tela_inicial</string>
+    <string name="lista_de_ag">Lista de agendamentos</string>
+    <string name="abril">Abril</string>
+    <string name="pr_ximo_m_s">Próximo mês</string>
+    <string name="m_s_anterior">Mês anterior</string>
+
+</resources>
