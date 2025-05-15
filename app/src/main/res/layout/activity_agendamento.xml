@@ -211,7 +211,7 @@
             android:contentDescription="@string/acessar_a_tela_inicial"/>
 
         <ImageView
-            android:id="@+id/icon_agendar"
+            android:id="@+id/icon_calendar"
             android:layout_width="38dp"
             android:layout_height="34dp"
             android:background="@drawable/ic_calendar"
@@ -222,7 +222,7 @@
             android:contentDescription="@string/acessar_a_tela_de_agendamento"/>
 
         <ImageView
-            android:id="@+id/icon_agenda"
+            android:id="@+id/icon_agendar"
             android:layout_width="38dp"
             android:layout_height="34dp"
             android:background="@drawable/ic_agendar"

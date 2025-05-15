@@ -40,7 +40,7 @@ class Agenda : AppCompatActivity() {
         // Encontrando os ícones
         val icon_home = findViewById<ImageView>(R.id.icon_home)
         val icon_agendar = findViewById<ImageView>(R.id.icon_agendar)
-        val icon_agenda = findViewById<ImageView>(R.id.icon_agenda)
+        val icon_calendar = findViewById<ImageView>(R.id.icon_calendar)
         val icon_add = findViewById<ImageView>(R.id.icon_add)
 
         // Definindo ações para os ícones
@@ -52,7 +52,7 @@ class Agenda : AppCompatActivity() {
             startActivity(Intent(this, Agendamento::class.java))
         }
 
-        icon_agenda.setOnClickListener {
+        icon_calendar.setOnClickListener {
             startActivity(Intent(this, Agenda::class.java))
         }
 
