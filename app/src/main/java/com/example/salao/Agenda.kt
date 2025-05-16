@@ -6,8 +6,13 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat.startActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgendamento
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToLogin
 import com.example.salao.utils.gerarDiasDoMes
 import com.example.salao.utils.esconderBarrasDoSistema
 import java.text.SimpleDateFormat
@@ -26,38 +31,46 @@ class Agenda : AppCompatActivity() {
 
         esconderBarrasDoSistema(this) // Oculta as barras de sistema
 
-        // Inicializando as variáveis
-        calendar = Calendar.getInstance() // Obtém o calendário atual
-        tvMes = findViewById(R.id.tv_mes) // Referência para o TextView do mês
-        calendarRecyclerView = findViewById(R.id.calendarRecyclerView) // Referência para o RecyclerView
+        calendarRecyclerView = findViewById(R.id.calendarRecyclerView)
+        tvMes = findViewById(R.id.tv_mes)
 
-        // Configuração do RecyclerView
-        calendarRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        // Iniciar layout horizontal
+        calendarRecyclerView.layoutManager =
+            LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
 
-        // Atualizar calendário na tela
+        calendar = Calendar.getInstance()
+
+        // Inicializar os dias da semana
         atualizarCalendario()
 
-        // Encontrando os ícones
-        val icon_home = findViewById<ImageView>(R.id.icon_home)
-        val icon_agendar = findViewById<ImageView>(R.id.icon_agendar)
-        val icon_calendar = findViewById<ImageView>(R.id.icon_calendar)
-        val icon_add = findViewById<ImageView>(R.id.icon_add)
+        // Navegação entre meses
+        val btnAnterior: ImageView = findViewById(R.id.seta_anterior)
+        val btnProximo: ImageView = findViewById(R.id.seta_proximo)
 
-        // Definindo ações para os ícones
-        icon_home.setOnClickListener {
-            startActivity(Intent(this, LoginProfissional::class.java))
+        btnAnterior.setOnClickListener {
+            calendar.add(Calendar.MONTH, -1)
+            atualizarCalendario()
         }
 
-        icon_agendar.setOnClickListener {
-            startActivity(Intent(this, Agendamento::class.java))
+        btnProximo.setOnClickListener {
+            calendar.add(Calendar.MONTH, 1)
+            atualizarCalendario()
         }
+        setupNavigationIcons()
+    }
 
-        icon_calendar.setOnClickListener {
-            startActivity(Intent(this, Agenda::class.java))
+    private fun setupNavigationIcons() {
+        findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
+            navigateToLogin(this)
         }
-
-        icon_add.setOnClickListener {
-            startActivity(Intent(this, CadastroCli::class.java))
+        findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
+            navigateToAgendamento(this)
+        }
+        findViewById<ImageView>(R.id.icon_calendar)?.setOnClickListener {
+            navigateToAgenda(this)
+        }
+        findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
+            navigateToCadastroCliente(this)
         }
     }
 

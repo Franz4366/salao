@@ -23,5 +23,10 @@
     <string name="abril">Abril</string>
     <string name="pr_ximo_m_s">Próximo mês</string>
     <string name="m_s_anterior">Mês anterior</string>
+    <string name="Deletar">Deletar</string>
+    <string name="nome_do_cliente">Nome do cliente</string>
+    <string name="telefone_do_cliente">Telefone</string>
+    <string name="email_do_cliente">E-mail</string>
+    <string name="data_de_nascimento">Data de nascimento</string>
 
 </resources>

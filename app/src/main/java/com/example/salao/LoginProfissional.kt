@@ -7,8 +7,13 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import android.content.Intent
 import android.widget.ImageView
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgendamento
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToLogin
 import com.example.salao.utils.esconderBarrasDoSistema
 import kotlin.jvm.java
+
 
 
 class LoginProfissional : AppCompatActivity() {
@@ -25,27 +30,21 @@ class LoginProfissional : AppCompatActivity() {
             insets
 
         }
-        // Encontrando os ícones
-        val icon_home = findViewById<ImageView>(R.id.icon_home)
-        val icon_agendar = findViewById<ImageView>(R.id.icon_agendar)
-        val icon_agenda = findViewById<ImageView>(R.id.icon_agenda)
-        val icon_add = findViewById<ImageView>(R.id.icon_add)
+        setupNavigationIcons()
+    }
 
-        // Definindo ações para os ícones
-        icon_home.setOnClickListener {
-            startActivity(Intent(this, LoginProfissional::class.java))
+    private fun setupNavigationIcons() {
+        findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
+            navigateToLogin(this)
         }
-
-        icon_agendar.setOnClickListener {
-            startActivity(Intent(this, Agendamento::class.java))
+        findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
+            navigateToAgendamento(this)
         }
-
-        icon_agenda.setOnClickListener {
-            startActivity(Intent(this, Agenda::class.java))
+        findViewById<ImageView>(R.id.icon_calendar)?.setOnClickListener {
+            navigateToAgenda(this)
         }
-
-        icon_add.setOnClickListener {
-            startActivity(Intent(this, CadastroCli::class.java))
+        findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
+            navigateToCadastroCliente(this)
         }
     }
 
