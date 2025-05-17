@@ -8,7 +8,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import coil.load
+import coil3.load
+import coil3.request.crossfade
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgendamento
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
@@ -26,10 +27,11 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+
 class LoginProfissional : AppCompatActivity() {
 
     private lateinit var nomeProfissionalTextView: TextView
-    private lateinit var fotoProfissionalImageView: ImageView
+    //private lateinit var fotoProfissionalImageView: ImageView  <-- Removido
     private val supabaseClient = SupabaseClient()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
     private var loggedInUserId: String? = null
@@ -42,7 +44,7 @@ class LoginProfissional : AppCompatActivity() {
 
         // Inicializar as Views
         nomeProfissionalTextView = findViewById(R.id.nome_profissional)
-        fotoProfissionalImageView = findViewById(R.id.ellipse_2)
+        //fotoProfissionalImageView = findViewById(R.id.ellipse_2)  <-- Removido
 
         // Obter o ID do usuário logado do SharedPreferences
         val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
@@ -56,8 +58,7 @@ class LoginProfissional : AppCompatActivity() {
             // Lidar com o caso em que não há ID de usuário (algo deu errado no login)
             Log.e("LoginProfissional", "ID do usuário não encontrado nas SharedPreferences.")
             nomeProfissionalTextView.text = "Erro ao obter ID"
-            fotoProfissionalImageView.setImageResource(R.drawable.ellipse_2)
-            // Talvez redirecionar para a tela de login novamente
+            //fotoProfissionalImageView.setImageResource(R.drawable.ellipse_2)  <-- Removido
         }
 
         setupNavigationIcons()
@@ -84,15 +85,11 @@ class LoginProfissional : AppCompatActivity() {
 
     private suspend fun buscarPerfilDoUsuario(userId: String) {
         try {
-            Log.d("LoginProfissional", "URL da busca de perfil: ${supabaseClient.supabaseUrl}/rest/v1/profiles")
-            Log.d("LoginProfissional", "Parâmetro 'select': nome, photo_url")
-            Log.d("LoginProfissional", "Parâmetro 'id': eq.$userId")
             val response: HttpResponse = supabaseClient.client.get("${supabaseClient.supabaseUrl}/rest/v1/profiles") {
                 parameter("select", "id, nome, photo_url")
                 parameter("id", "eq.$userId")
                 header("Accept", "application/json")
             }
-            Log.d("LoginProfissional", "Status da resposta da busca de perfil: ${response.status}")
 
             if (!response.status.isSuccess()) {
                 val errorText = response.bodyAsText()
@@ -100,30 +97,29 @@ class LoginProfissional : AppCompatActivity() {
             }
 
             val profiles: List<UserProfile> = response.body<List<UserProfile>>()
-            Log.d("LoginProfissional", "Corpo da resposta da busca de perfil (sucesso): ${response.bodyAsText()}")
             if (profiles.isNotEmpty()) {
                 val userProfile = profiles[0]
                 nomeProfissionalTextView.text = userProfile.nome ?: "Nome não encontrado"
-                userProfile.photo_url?.let { imageUrl ->
-                    fotoProfissionalImageView.load(imageUrl) {
-                        placeholder(R.drawable.ellipse_2)
-                        error(R.drawable.ellipse_2)
-                        crossfade(true)
-                    }
-                } ?: run {
-                    fotoProfissionalImageView.setImageResource(R.drawable.ellipse_2)
-                }
+                //userProfile.photo_url?.let { imageUrl ->  <-- Removido
+                //    fotoProfissionalImageView.load(imageUrl) {  <-- Removido
+                //        val placeholderDrawable: Drawable? = resources.getDrawable(R.drawable.ellipse_2, theme)  <-- Removido
+                //        val errorDrawable: Drawable? = resources.getDrawable(R.drawable.ellipse_2, theme)  <-- Removido
+                //        placeholder(placeholderDrawable)  <-- Removido
+                //        error(errorDrawable)  <-- Removido
+                //        crossfade(true)  <-- Removido
+                //    }  <-- Removido
+                //} ?: run {  <-- Removido
+                //    fotoProfissionalImageView.setImageResource(R.drawable.ellipse_2)  <-- Removido
+                //}  <-- Removido
             } else {
-                Log.d("LoginProfissional", "Nenhum perfil encontrado para o ID: $userId")
-
                 nomeProfissionalTextView.text = "Usuário não encontrado"
-                fotoProfissionalImageView.setImageResource(R.drawable.ellipse_2)
+                //fotoProfissionalImageView.setImageResource(R.drawable.ellipse_2)  <-- Removido
             }
 
         } catch (e: Exception) {
             Log.e("LoginProfissional", "Erro ao buscar perfil do usuário: ${e.message}")
             nomeProfissionalTextView.text = "Erro ao carregar nome"
-            fotoProfissionalImageView.setImageResource(R.drawable.ellipse_2)
+            //fotoProfissionalImageView.setImageResource(R.drawable.ellipse_2)  <-- Removido
         }
     }
 
