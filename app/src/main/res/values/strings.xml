@@ -28,5 +28,6 @@
     <string name="telefone_do_cliente">Telefone</string>
     <string name="email_do_cliente">E-mail</string>
     <string name="data_de_nascimento">Data de nascimento</string>
+    <string name="selecione_a_hora">Hora</string>
 
 </resources>

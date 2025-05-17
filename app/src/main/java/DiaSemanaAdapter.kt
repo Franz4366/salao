@@ -12,19 +12,14 @@ class DiaSemanaAdapter(private val dias: List<DiaSemana>) :
     private var selectedPosition: Int? = null
 
     inner class DiaViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val tvDia: TextView = itemView.findViewById(R.id.tv_dia_semana)
-        val tvNumero: TextView = itemView.findViewById(R.id.tv_dia_numero)
+        val nomeDiaTextView: TextView = itemView.findViewById(R.id.tv_dia_semana)
+        val numeroDiaTextView: TextView = itemView.findViewById(R.id.tv_dia_numero)
 
         init {
             itemView.setOnClickListener {
                 val position = adapterPosition
                 if (position != RecyclerView.NO_POSITION) {
-                    if (selectedPosition == position) {
-                        // Se clicou no mesmo, desmarca
-                        selectedPosition = null
-                    } else {
-                        selectedPosition = position
-                    }
+                    selectedPosition = if (selectedPosition == position) null else position
                     notifyDataSetChanged()
                 }
             }
@@ -39,28 +34,24 @@ class DiaSemanaAdapter(private val dias: List<DiaSemana>) :
 
     override fun onBindViewHolder(holder: DiaViewHolder, position: Int) {
         val dia = dias[position]
-        holder.tvDia.text = dia.nome
-        holder.tvNumero.text = dia.numero.toString()
+        val isHoje = dia.ehHoje
+        val isSelecionado = selectedPosition == position
 
-        // Limpa primeiro
-        holder.tvNumero.background = null
-        holder.tvNumero.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
+        holder.nomeDiaTextView.text = dia.nome
+        holder.numeroDiaTextView.text = dia.numero.toString()
 
-        // Dia atual (hoje)?
-        if (dia.ehHoje) {
+        holder.numeroDiaTextView.background = null
+        holder.numeroDiaTextView.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
+
+        if (isHoje) {
+            holder.numeroDiaTextView.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, R.drawable.ponto_vermelho)
             if (selectedPosition == null) {
-                // Nenhum selecionado: hoje fica com círculo + ponto vermelho
-                holder.tvNumero.setBackgroundResource(R.drawable.circle_white)
-                holder.tvNumero.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, R.drawable.ponto_vermelho)
-            } else {
-                // Se outro dia está selecionado, hoje só tem ponto vermelho
-                holder.tvNumero.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, R.drawable.ponto_vermelho)
+                holder.numeroDiaTextView.setBackgroundResource(R.drawable.circle_white)
             }
         }
 
-        // Dia selecionado?
-        if (selectedPosition == position) {
-            holder.tvNumero.setBackgroundResource(R.drawable.circle_white)
+        if (isSelecionado) {
+            holder.numeroDiaTextView.setBackgroundResource(R.drawable.circle_white)
         }
     }
 
