@@ -20,10 +20,10 @@ import io.ktor.http.HttpHeaders
 
 class SupabaseClient {
 
-    private val supabaseUrl = "https://kljubsnvkyeqbqyhxvfs.supabase.co"
+    private val _supabaseUrl = "https://kljubsnvkyeqbqyhxvfs.supabase.co"
     private val supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtsanVic252a3llcWJxeWh4dmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3OTAxNjIsImV4cCI6MjA1NzM2NjE2Mn0.FAKh25wwfPBNfA_Ynqr4ZdElikIBUfHPnVb1hLAxy8Y"
 
-    private val client = HttpClient {
+    private val _client = HttpClient {
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
@@ -35,6 +35,14 @@ class SupabaseClient {
             header(HttpHeaders.Authorization, "Bearer $supabaseKey")
         }
     }
+
+    // Propriedade pública para acessar a URL do Supabase
+    val supabaseUrl: String
+        get() = _supabaseUrl
+
+    // Propriedade pública para acessar o HttpClient
+    val client: HttpClient
+        get() = _client
 
     @Serializable
     data class NovoCliente(

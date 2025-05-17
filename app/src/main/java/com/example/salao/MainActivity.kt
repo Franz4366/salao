@@ -49,19 +49,20 @@ class MainActivity : AppCompatActivity() {
             progressBar.visibility = ProgressBar.VISIBLE
             loginButton.isEnabled = false
 
+            Log.d("MainActivity", "Tentando fazer login com email: $email")
+
             lifecycleScope.launch {
                 try {
                     val result = authClient.login(email, password)
-                    Log.d("LOGIN", "Usuário logado: ${result.user.email}")
                     Toast.makeText(this@MainActivity, "Login realizado com sucesso!", Toast.LENGTH_LONG).show()
 
+                    // Salvar o estado de login no SharedPreferences
                     val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
                     val editor = sharedPreferences.edit()
                     editor.putBoolean("is_logged_in", true)
-                    editor.putString("user_email", emailEditText.text.toString()) // se quiser guardar o e-mail
+                    editor.putString("user_email", emailEditText.text.toString())
+                    editor.putString("user_id", result.user.id) // Salvar o ID do usuário
                     editor.apply()
-
-
 
                     // Navegar para a próxima tela após o login bem-sucedido
                     startActivity(Intent(this@MainActivity, LoginProfissional::class.java))

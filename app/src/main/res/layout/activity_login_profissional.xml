@@ -35,18 +35,17 @@
 
     <TextView
         android:id="@+id/nome_profissional"
-        android:layout_width="221dp"
+        android:layout_width="245dp"
         android:layout_height="41dp"
-        app:layout_constraintStart_toStartOf="@id/main"
-        android:layout_marginStart="20dp"
-        app:layout_constraintTop_toTopOf="@id/main"
-        android:layout_marginTop="65dp"
+        app:layout_constraintTop_toBottomOf="@+id/oi"
+        android:layout_marginTop="10dp"
+        app:layout_constraintStart_toStartOf="0dp"
         android:text="@string/alexandra"
         android:textAppearance="@style/alexandra"
         android:gravity="center_horizontal|bottom"
         />
 
-    <View
+    <ImageView
         android:id="@+id/ellipse_2"
         android:layout_width="87dp"
         android:layout_height="87dp"
