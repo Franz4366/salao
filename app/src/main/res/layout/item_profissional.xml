@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:padding="8dp">
+
+    <ImageView
+        android:id="@+id/foto_profissional"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/ellipse_14"
+        android:scaleType="centerCrop"
+        android:contentDescription="@string/foto_do_profissional" />
+
+    <TextView
+        android:id="@+id/nome_profissional"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/nome_do_profissional"
+        android:textSize="12sp"
+        android:textColor="@android:color/black"
+        android:layout_marginTop="8dp"
+        android:gravity="center"/>
+
+</LinearLayout>

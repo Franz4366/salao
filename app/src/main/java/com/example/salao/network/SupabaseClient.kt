@@ -1,5 +1,7 @@
 package com.example.salao.network
 
+import android.util.Log
+import com.example.salao.Agendamento
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -21,7 +23,8 @@ import io.ktor.http.HttpHeaders
 class SupabaseClient {
 
     private val _supabaseUrl = "https://kljubsnvkyeqbqyhxvfs.supabase.co"
-    private val supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtsanVic252a3llcWJxeWh4dmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3OTAxNjIsImV4cCI6MjA1NzM2NjE2Mn0.FAKh25wwfPBNfA_Ynqr4ZdElikIBUfHPnVb1hLAxy8Y"
+    private val supabaseKey =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtsanVic252a3llcWJxeWh4dmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3OTAxNjIsImV4cCI6MjA1NzM2NjE2Mn0.FAKh25wwfPBNfA_Ynqr4ZdElikIBUfHPnVb1hLAxy8Y"
 
     private val _client = HttpClient {
         install(ContentNegotiation) {
@@ -97,6 +100,24 @@ class SupabaseClient {
         if (!response.status.isSuccess()) {
             val errorText = response.bodyAsText()
             throw Exception("Erro ao deletar cliente: $errorText")
+        }
+    }
+    suspend fun getProfissionais(): List<Agendamento.Profile> {
+        return try {
+            val response: HttpResponse = client.get("$supabaseUrl/rest/v1/profiles") {
+                headers {
+                    append("apikey", supabaseKey)
+                    append("Authorization", "Bearer $supabaseKey") // Se necessário
+                }
+                parameter("select", "nome,cargo,photo_url") // Seleciona as colunas que você precisa
+                parameter("cargo", "not.eq.null") //filtra profissionais que tem cargo preenchido
+            }.body()
+
+            // Converter a resposta para uma lista de objetos Profile
+            Json.decodeFromString(response.bodyAsText())
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Erro ao obter profissionais: ${e.message}")
+            emptyList() // Retorna uma lista vazia em caso de erro
         }
     }
 }

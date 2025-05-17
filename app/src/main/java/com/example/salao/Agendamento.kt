@@ -6,23 +6,10 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.salao.network.SupabaseClient
 import com.example.salao.utils.esconderBarrasDoSistema
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import android.app.TimePickerDialog
 import java.util.*
 import android.text.Editable
@@ -34,13 +21,25 @@ import android.widget.FrameLayout
 import java.text.SimpleDateFormat
 import java.util.Locale
 import android.view.ViewGroup
-import android.view.LayoutInflater
-import androidx.core.content.ContextCompat
-import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
-import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgendamento
-import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
-import com.example.salao.com.example.salao.utils.NavigationManager.navigateToLogin
+import android.widget.LinearLayout
 import com.example.salao.utils.gerarDiasDoMes
+import com.squareup.picasso.Picasso
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
+import android.graphics.RectF
+import android.view.LayoutInflater
+import com.squareup.picasso.Transformation
 
 class Agendamento : AppCompatActivity() {
 
@@ -51,17 +50,14 @@ class Agendamento : AppCompatActivity() {
     private lateinit var pesquisa: AutoCompleteTextView
     private lateinit var resultPesquisa: View
     private lateinit var cxHora: TextView
-    private lateinit var profissional: TextView
-    private lateinit var ellipse14: View
-    private lateinit var ellipse15: View
-    private lateinit var ellipse16: View
-    private lateinit var ellipse17: View
     private lateinit var btAgendar: FrameLayout
     private lateinit var iconHome: ImageView
     private lateinit var iconCalendar: ImageView
     private lateinit var iconAgendar: ImageView
     private lateinit var iconAdd: ImageView
     private lateinit var iconUser: ImageView
+    private lateinit var containerProfissionais: LinearLayout
+
 
     // Variáveis para a pesquisa de clientes
     private val supabaseClient = SupabaseClient()
@@ -69,6 +65,12 @@ class Agendamento : AppCompatActivity() {
     private var selectedHour: Int? = null
     private var selectedMinute: Int? = null
 
+    @Serializable
+    data class Profile(
+        @SerialName("nome") val nome: String,
+        @SerialName("cargo") val cargo: String,
+        @SerialName("photo_url") val fotoUrl: String?
+    )
 
     private fun buscarClientes(prefixo: String) {
         coroutineScope.launch {
@@ -78,7 +80,7 @@ class Agendamento : AppCompatActivity() {
                     clientes.map { it.nome } // Extrai apenas os nomes da lista de clientes
                 atualizarSugestoes(nomesClientes)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("Agendamento", "Erro ao buscar clientes: ${e.message}")
             }
         }
     }
@@ -87,7 +89,7 @@ class Agendamento : AppCompatActivity() {
         val adapter =
             ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, nomes)
         pesquisa.setAdapter(adapter)
-        adapter.notifyDataSetChanged() // Notifica o adapter que os dados mudaram
+        adapter.notifyDataSetChanged()
     }
 
     override fun onDestroy() {
@@ -97,7 +99,7 @@ class Agendamento : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge() // Garante que o conteúdo ocupe toda a tela
+        enableEdgeToEdge()
         setContentView(R.layout.activity_agendamento)
 
         // Inicializar as Views
@@ -106,17 +108,13 @@ class Agendamento : AppCompatActivity() {
         pesquisa = findViewById(R.id.pesquisa)
         resultPesquisa = findViewById(R.id.result_pesquisa)
         cxHora = findViewById(R.id.cx_hora)
-        profissional = findViewById(R.id.profissiona)
-        ellipse14 = findViewById(R.id.ellipse_14)
-        ellipse15 = findViewById(R.id.ellipse_15)
-        ellipse16 = findViewById(R.id.ellipse_16)
-        ellipse17 = findViewById(R.id.ellipse_17)
         btAgendar = findViewById(R.id.bt_agendar)
         iconHome = findViewById(R.id.icon_home)
         iconCalendar = findViewById(R.id.icon_calendar)
         iconAgendar = findViewById(R.id.icon_agendar)
         iconAdd = findViewById(R.id.icon_add)
         iconUser = findViewById(R.id.icon_user)
+        containerProfissionais = findViewById(R.id.container_profissionais)
 
         // Configurar a caixa de hora para exibir 8:00 inicialmente
         cxHora.text = "8:00"
@@ -127,7 +125,6 @@ class Agendamento : AppCompatActivity() {
         cxHora.setOnClickListener {
             showTimePickerDialog()
         }
-
 
         pesquisa.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(
@@ -145,10 +142,9 @@ class Agendamento : AppCompatActivity() {
 
             override fun afterTextChanged(s: Editable?) {
                 val textoDigitado = s.toString()
-                if (textoDigitado.length >= 2) { // Buscar apenas se o usuário digitou pelo menos 3 caracteres
+                if (textoDigitado.length >= 2) {
                     buscarClientes(textoDigitado)
                 } else {
-                    // Limpar as sugestões se o texto for muito curto
                     val adapter = ArrayAdapter<String>(
                         this@Agendamento,
                         android.R.layout.simple_dropdown_item_1line,
@@ -159,7 +155,103 @@ class Agendamento : AppCompatActivity() {
             }
         })
         setupNavigationIcons()
+        carregarProfissionais()
     }
+
+    private fun carregarProfissionais() {
+        coroutineScope.launch {
+            try {
+                val profissionais = supabaseClient.getProfissionais()
+                containerProfissionais.removeAllViews()
+
+                if (profissionais.isNotEmpty()) {
+                    profissionais.forEach { profissional ->
+                        val profissionalView = criarViewProfissional(profissional)
+                        containerProfissionais.addView(profissionalView)
+                    }
+                } else {
+                    // Exibe uma mensagem caso não haja profissionais cadastrados
+                    val mensagemTextView = TextView(this@Agendamento)
+                    mensagemTextView.text = "Nenhum profissional cadastrado."
+                    mensagemTextView.layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    mensagemTextView.gravity = View.TEXT_ALIGNMENT_CENTER
+                    containerProfissionais.addView(mensagemTextView)
+                }
+            } catch (e: Exception) {
+                Log.e("Agendamento", "Erro ao carregar profissionais: ${e.message}")
+                // Lide com o erro (ex: exibir uma mensagem para o usuário)
+                val mensagemTextView = TextView(this@Agendamento)
+                mensagemTextView.text = "Erro ao carregar profissionais."
+                mensagemTextView.layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                mensagemTextView.gravity = View.TEXT_ALIGNMENT_CENTER
+                containerProfissionais.addView(mensagemTextView)
+            }
+        }
+    }
+
+    private fun criarViewProfissional(profissional: Profile): View {
+        val view = LayoutInflater.from(this).inflate(R.layout.item_profissional, containerProfissionais, false)
+        val fotoProfissional = view.findViewById<ImageView>(R.id.foto_profissional)
+        val nomeProfissional = view.findViewById<TextView>(R.id.nome_profissional)
+
+        nomeProfissional.text = profissional.nome
+        Log.d("Agendamento", "Nome do profissional: ${profissional.nome}, URL da foto: ${profissional.fotoUrl}")
+        if (profissional.fotoUrl != null) {
+            Picasso.get()
+                .load(profissional.fotoUrl)
+                .transform(CircleTransform()) // Aplica a transformação para deixar a imagem circular
+                .placeholder(R.drawable.ellipse_14)
+                .error(R.drawable.ellipse_14)
+                .into(fotoProfissional)
+        } else {
+            fotoProfissional.setImageResource(R.drawable.ellipse_14)
+        }
+
+        return view
+    }
+
+    // Classe para transformar a imagem em um círculo
+    class CircleTransform : Transformation {
+        override fun transform(source: Bitmap): Bitmap {
+            val size = Math.min(source.width, source.height)
+
+            val x = (source.width - size) / 2
+            val y = (source.height - size) / 2
+
+            val squaredBitmap = Bitmap.createBitmap(source, x, y, size, size)
+            if (squaredBitmap != source) {
+                source.recycle()
+            }
+
+            val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888) // Correção aqui
+            val canvas = Canvas(bitmap)
+            val paint = Paint()
+            val shader = android.graphics.BitmapShader(
+                squaredBitmap,
+                android.graphics.Shader.TileMode.CLAMP,
+                android.graphics.Shader.TileMode.CLAMP
+            )
+            paint.shader = shader
+            paint.isAntiAlias = true
+
+            val r = size / 2f
+            canvas.drawCircle(r, r, r, paint)
+
+            squaredBitmap.recycle()
+            return bitmap
+        }
+
+        override fun key(): String {
+            return "circle"
+        }
+    }
+
 
     private fun showTimePickerDialog() {
         val calendar = Calendar.getInstance()
@@ -169,16 +261,14 @@ class Agendamento : AppCompatActivity() {
         val timePickerDialog = TimePickerDialog(
             this,
             { _, hourOfDay, minute ->
-                // Atualiza as variáveis com a hora selecionada
                 selectedHour = hourOfDay
                 selectedMinute = minute
-                // Atualiza o texto do TextView cxHora com a hora selecionada
                 val formattedTime = String.format("%02d:%02d", hourOfDay, minute)
                 cxHora.text = formattedTime
             },
             hour,
             minute,
-            true // Use true para 24 horas, false para 12 horas
+            true
         )
         timePickerDialog.show()
     }
@@ -186,29 +276,25 @@ class Agendamento : AppCompatActivity() {
 
     private fun setupNavigationIcons() {
         findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
-            navigateToLogin(this)
+            //navigateToLogin(this)
         }
         findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
-            navigateToAgendamento(this)
+            //navigateToAgendamento(this)
         }
         findViewById<ImageView>(R.id.icon_calendar)?.setOnClickListener {
-            navigateToAgenda(this)
+            //navigateToAgenda(this)
         }
         findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
-            navigateToCadastroCliente(this)
+            //navigateToCadastroCliente(this)
         }
 
-        // Escondendo as barras de sistema
         esconderBarrasDoSistema(this)
 
-        // Iniciar layout horizontal
         calendarRecyclerView.layoutManager =
             LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
 
-        // Inicializar os dias da semana
         atualizarCalendario()
 
-        // Navegação entre meses
         val btnAnterior: ImageView = findViewById(R.id.seta_anterior)
         val btnProximo: ImageView = findViewById(R.id.seta_proximo)
 
@@ -232,14 +318,12 @@ class Agendamento : AppCompatActivity() {
     }
 
     private fun atualizarCalendario() {
-        val dias = gerarDiasDoMes(calendar) // Chama a função do arquivo utilitário
+        val dias = gerarDiasDoMes(calendar)
 
-        // Atualizar o nome do mês
         tvMes.text = SimpleDateFormat("MMMM", Locale("pt", "BR"))
             .format(calendar.time)
             .replaceFirstChar { it.uppercase() }
 
-        // Atualizando o adapter do RecyclerView
         calendarRecyclerView.adapter = DiaSemanaAdapter(dias)
     }
 }

@@ -117,45 +117,24 @@
         android:textAppearance="@style/profissional"
         android:gravity="center_horizontal|top" />
 
-    <View
-        android:id="@+id/ellipse_14"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        app:layout_constraintTop_toBottomOf="@id/profissiona"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="10dp"
-        android:layout_marginStart="16dp"
-        android:background="@drawable/ellipse_14" />
+    <LinearLayout
+        android:id="@+id/container_profissionais"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@+id/profissiona"
+        app:layout_constraintStart_toStartOf="@+id/main">
 
-    <View
-        android:id="@+id/ellipse_15"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        app:layout_constraintTop_toBottomOf="@id/profissiona"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="10dp"
-        android:layout_marginStart="116dp"
-        android:background="@drawable/ellipse_14" />
+        <View
+            android:id="@+id/ellipse_14"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            app:layout_constraintTop_toBottomOf="@id/profissiona"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="10dp"
+            android:layout_marginStart="16dp"
+            android:background="@drawable/ellipse_14" />
 
-    <View
-        android:id="@+id/ellipse_16"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        app:layout_constraintTop_toBottomOf="@id/profissiona"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="10dp"
-        android:layout_marginStart="215dp"
-        android:background="@drawable/ellipse_14" />
-
-    <View
-        android:id="@+id/ellipse_17"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        app:layout_constraintTop_toBottomOf="@id/profissiona"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="10dp"
-        android:layout_marginStart="316dp"
-        android:background="@drawable/ellipse_14" />
+    </LinearLayout>
 
     <FrameLayout
         android:id="@+id/bt_agendar"

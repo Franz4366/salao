@@ -29,5 +29,7 @@
     <string name="email_do_cliente">E-mail</string>
     <string name="data_de_nascimento">Data de nascimento</string>
     <string name="selecione_a_hora">Hora</string>
+    <string name="foto_do_profissional">Foto do profissional</string>
+    <string name="nome_do_profissional">Nome do Profissional</string>
 
 </resources>
