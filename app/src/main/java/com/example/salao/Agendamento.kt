@@ -19,8 +19,8 @@ import android.widget.AutoCompleteTextView
 import android.view.View
 import android.widget.FrameLayout
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
-import android.view.ViewGroup
 import android.widget.LinearLayout
 import com.example.salao.utils.gerarDiasDoMes
 import com.squareup.picasso.Picasso
@@ -34,11 +34,13 @@ import kotlinx.coroutines.cancel
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
-import android.graphics.Rect
-import android.graphics.RectF
 import android.view.LayoutInflater
+import android.widget.Toast
+import androidx.compose.foundation.gestures.snapping.SnapPosition.Center.position
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgendamento
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToLogin
 import com.squareup.picasso.Transformation
 
 class Agendamento : AppCompatActivity() {
@@ -57,6 +59,10 @@ class Agendamento : AppCompatActivity() {
     private lateinit var iconAdd: ImageView
     private lateinit var iconUser: ImageView
     private lateinit var containerProfissionais: LinearLayout
+    private var selectedDate: Date? = null
+    private var selectedClientName: String? = null
+    private var selectedProfessional: Profile? = null
+
 
 
     // Variáveis para a pesquisa de clientes
@@ -133,7 +139,12 @@ class Agendamento : AppCompatActivity() {
                 count: Int,
                 after: Int
             ) {
-                // Não precisamos fazer nada aqui
+                pesquisa.setOnItemClickListener { adapterView, _, position, _ ->
+                    this@Agendamento.selectedClientName = adapterView.getItemAtPosition(position) as String
+                    Log.d("Agendamento", "Cliente selecionado: $selectedClientName")
+                    // Opcional: Você pode limpar o foco do AutoCompleteTextView ou esconder o teclado aqui
+                }
+
             }
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -156,6 +167,44 @@ class Agendamento : AppCompatActivity() {
         })
         setupNavigationIcons()
         carregarProfissionais()
+
+        btAgendar.setOnClickListener {
+            salvarAgendamento()
+        }
+    }
+
+    private fun salvarAgendamento() {
+        if (selectedDate != null && selectedClientName != null && selectedHour != null && selectedProfessional != null) {
+            // Todos os dados necessários foram selecionados
+            val dataAgendamento = SimpleDateFormat("yyyy-MM-dd", Locale("pt", "BR")).format(selectedDate!!)
+            val horaAgendamento = String.format("%02d:%02d", selectedHour, selectedMinute)
+            val nomeProfissional = selectedProfessional!!.nome // Supondo que você queira salvar o nome do profissional
+
+            Log.d("Agendamento", "Dados para salvar: Data=$dataAgendamento, Hora=$horaAgendamento, Cliente=$selectedClientName, Profissional=$nomeProfissional")
+
+            // Aqui você chamará o SupabaseClient para salvar os dados
+            // supabaseClient.criarAgendamento(clienteId, dataAgendamento, horaAgendamento, nomeProfissional)
+
+            // Por enquanto, vamos apenas mostrar uma mensagem de sucesso
+            exibirMensagem("Agendamento realizado com sucesso!")
+
+            // Opcional: Limpar os campos
+            selectedDate = null
+            selectedClientName = null
+            selectedProfessional = null
+            selectedHour = null
+            selectedMinute = null
+            pesquisa.text.clear()
+            cxHora.text = getString(R.string.selecione_a_hora) // Ou o texto inicial da hora
+            // Opcional: Atualizar o calendário ou a lista de profissionais se necessário
+        } else {
+            // Algum dado não foi selecionado
+            exibirMensagem("Por favor, selecione a data, o cliente, a hora e o profissional.")
+        }
+    }
+
+    private fun exibirMensagem(mensagem: String) {
+        Toast.makeText(this, mensagem, Toast.LENGTH_LONG).show()
     }
 
     private fun carregarProfissionais() {
@@ -211,6 +260,11 @@ class Agendamento : AppCompatActivity() {
                 .into(fotoProfissional)
         } else {
             fotoProfissional.setImageResource(R.drawable.ellipse_14)
+        }
+        view.setOnClickListener {
+            selectedProfessional = profissional
+            Log.d("Agendamento", "Profissional selecionado: ${profissional.nome}")
+            // Aqui você pode adicionar alguma lógica para destacar o profissional selecionado, se desejar
         }
 
         return view
@@ -276,16 +330,16 @@ class Agendamento : AppCompatActivity() {
 
     private fun setupNavigationIcons() {
         findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
-            //navigateToLogin(this)
+            navigateToLogin(this)
         }
         findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
-            //navigateToAgendamento(this)
+            navigateToAgendamento(this)
         }
         findViewById<ImageView>(R.id.icon_calendar)?.setOnClickListener {
-            //navigateToAgenda(this)
+            navigateToAgenda(this)
         }
         findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
-            //navigateToCadastroCliente(this)
+            navigateToCadastroCliente(this)
         }
 
         esconderBarrasDoSistema(this)
@@ -318,12 +372,20 @@ class Agendamento : AppCompatActivity() {
     }
 
     private fun atualizarCalendario() {
-        val dias = gerarDiasDoMes(calendar)
+        val dias = gerarDiasDoMes(calendar) // Esta função retorna List<Date>
 
         tvMes.text = SimpleDateFormat("MMMM", Locale("pt", "BR"))
             .format(calendar.time)
             .replaceFirstChar { it.uppercase() }
 
-        calendarRecyclerView.adapter = DiaSemanaAdapter(dias)
+        val adapter = DiaSemanaAdapter(dias) // Passa a lista de Date diretamente
+        adapter.setOnDateClickListener(object : OnDateClickListener {
+            override fun onDateClick(date: Date) {
+                selectedDate = date
+                Log.d("Agendamento", "Data selecionada: $date")
+                // Aqui você pode adicionar alguma lógica para destacar a data selecionada visualmente, se desejar
+            }
+        })
+        calendarRecyclerView.adapter = adapter
     }
 }
