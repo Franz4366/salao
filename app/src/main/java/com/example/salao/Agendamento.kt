@@ -35,8 +35,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.view.LayoutInflater
+import android.widget.EditText
 import android.widget.Toast
-import androidx.compose.foundation.gestures.snapping.SnapPosition.Center.position
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgendamento
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
@@ -50,7 +50,7 @@ class Agendamento : AppCompatActivity() {
     private lateinit var tvMes: TextView
     private var calendar: Calendar = Calendar.getInstance()
     private lateinit var pesquisa: AutoCompleteTextView
-    private lateinit var resultPesquisa: View
+    private lateinit var camp_obs: EditText
     private lateinit var cxHora: TextView
     private lateinit var btAgendar: FrameLayout
     private lateinit var iconHome: ImageView
@@ -62,14 +62,13 @@ class Agendamento : AppCompatActivity() {
     private var selectedDate: Date? = null
     private var selectedClientName: String? = null
     private var selectedProfessional: Profile? = null
-
-
+    private var selectedHour: Int? = null
+    private var selectedMinute: Int? = null
+    private var selectedProfessionalView: View? = null
 
     // Variáveis para a pesquisa de clientes
     private val supabaseClient = SupabaseClient()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
-    private var selectedHour: Int? = null
-    private var selectedMinute: Int? = null
 
     @Serializable
     data class Profile(
@@ -112,7 +111,7 @@ class Agendamento : AppCompatActivity() {
         calendarRecyclerView = findViewById(R.id.calendarRecyclerView)
         tvMes = findViewById(R.id.tv_mes)
         pesquisa = findViewById(R.id.pesquisa)
-        resultPesquisa = findViewById(R.id.result_pesquisa)
+        camp_obs = findViewById(R.id.camp_obs)
         cxHora = findViewById(R.id.cx_hora)
         btAgendar = findViewById(R.id.bt_agendar)
         iconHome = findViewById(R.id.icon_home)
@@ -121,6 +120,14 @@ class Agendamento : AppCompatActivity() {
         iconAdd = findViewById(R.id.icon_add)
         iconUser = findViewById(R.id.icon_user)
         containerProfissionais = findViewById(R.id.container_profissionais)
+
+        pesquisa.setOnItemClickListener { adapterView, _, position, _ ->
+            this@Agendamento.selectedClientName = adapterView.getItemAtPosition(position) as String
+            Log.d("Agendamento", "Cliente selecionado (OnItemClickListener): $selectedClientName")
+
+            Log.d("Agendamento", "Cliente selecionado: $selectedClientName")
+            // Opcional: Você pode limpar o foco do AutoCompleteTextView ou esconder o teclado aqui
+        }
 
         // Configurar a caixa de hora para exibir 8:00 inicialmente
         cxHora.text = "8:00"
@@ -139,12 +146,7 @@ class Agendamento : AppCompatActivity() {
                 count: Int,
                 after: Int
             ) {
-                pesquisa.setOnItemClickListener { adapterView, _, position, _ ->
-                    this@Agendamento.selectedClientName = adapterView.getItemAtPosition(position) as String
-                    Log.d("Agendamento", "Cliente selecionado: $selectedClientName")
-                    // Opcional: Você pode limpar o foco do AutoCompleteTextView ou esconder o teclado aqui
-                }
-
+                // Não precisamos fazer nada aqui
             }
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -172,39 +174,66 @@ class Agendamento : AppCompatActivity() {
             salvarAgendamento()
         }
     }
+    private fun exibirMensagem(mensagem: String) {
+        Toast.makeText(this, mensagem, Toast.LENGTH_LONG).show()
+    }
 
     private fun salvarAgendamento() {
         if (selectedDate != null && selectedClientName != null && selectedHour != null && selectedProfessional != null) {
-            // Todos os dados necessários foram selecionados
-            val dataAgendamento = SimpleDateFormat("yyyy-MM-dd", Locale("pt", "BR")).format(selectedDate!!)
+            val dataAgendamento =
+                SimpleDateFormat("yyyy-MM-dd", Locale("pt", "BR")).format(selectedDate!!)
             val horaAgendamento = String.format("%02d:%02d", selectedHour, selectedMinute)
-            val nomeProfissional = selectedProfessional!!.nome // Supondo que você queira salvar o nome do profissional
+            val nomeProfissional = selectedProfessional!!.nome
+            val observacoes = findViewById<EditText>(R.id.camp_obs).text.toString()
 
-            Log.d("Agendamento", "Dados para salvar: Data=$dataAgendamento, Hora=$horaAgendamento, Cliente=$selectedClientName, Profissional=$nomeProfissional")
+            Log.d("Agendamento", "Tentando buscar cliente com nome: $selectedClientName")
 
-            // Aqui você chamará o SupabaseClient para salvar os dados
-            // supabaseClient.criarAgendamento(clienteId, dataAgendamento, horaAgendamento, nomeProfissional)
+            coroutineScope.launch {
+                try {
+                    val cliente = supabaseClient.getClientePorNome(selectedClientName!!)
+                    if (cliente != null) {
+                        val clienteId = cliente.id
 
-            // Por enquanto, vamos apenas mostrar uma mensagem de sucesso
-            exibirMensagem("Agendamento realizado com sucesso!")
+                        Log.d("Agendamento", "Dados para agendamento: clienteId=$clienteId, data=$dataAgendamento, hora=$horaAgendamento, profissional=$nomeProfissional")
 
-            // Opcional: Limpar os campos
-            selectedDate = null
-            selectedClientName = null
-            selectedProfessional = null
-            selectedHour = null
-            selectedMinute = null
-            pesquisa.text.clear()
-            cxHora.text = getString(R.string.selecione_a_hora) // Ou o texto inicial da hora
-            // Opcional: Atualizar o calendário ou a lista de profissionais se necessário
+                        val sucesso = supabaseClient.criarAgendamento(
+                            clienteId = clienteId,
+                            dataAgendamento = dataAgendamento,
+                            horaAgendamento = horaAgendamento,
+                            profissionalNome = nomeProfissional,
+                            comentario = observacoes
+                        )
+
+                        if (sucesso) {
+                            exibirMensagem("Agendamento realizado com sucesso!")
+                            limparCamposAgendamento()
+                        } else {
+                            exibirMensagem("Erro ao realizar o agendamento.")
+                        }
+                    } else {
+                        exibirMensagem("Cliente não encontrado.")
+                    }
+                } catch (e: Exception) {
+                    Log.e("Agendamento", "Erro ao salvar agendamento: ${e.message}")
+                    exibirMensagem("Erro ao salvar o agendamento.")
+                }
+            }
         } else {
-            // Algum dado não foi selecionado
             exibirMensagem("Por favor, selecione a data, o cliente, a hora e o profissional.")
         }
     }
 
-    private fun exibirMensagem(mensagem: String) {
-        Toast.makeText(this, mensagem, Toast.LENGTH_LONG).show()
+    private fun limparCamposAgendamento() {
+        selectedDate = null
+        selectedClientName = null
+        selectedProfessional = null
+        selectedHour = null
+        selectedMinute = null
+        pesquisa.text.clear()
+        cxHora.text = getString(R.string.selecione_a_hora)
+        findViewById<EditText>(R.id.camp_obs)?.text?.clear()
+        selectedProfessionalView?.setBackgroundResource(android.R.color.transparent)
+        selectedProfessionalView = null
     }
 
     private fun carregarProfissionais() {
@@ -262,11 +291,16 @@ class Agendamento : AppCompatActivity() {
             fotoProfissional.setImageResource(R.drawable.ellipse_14)
         }
         view.setOnClickListener {
-            selectedProfessional = profissional
-            Log.d("Agendamento", "Profissional selecionado: ${profissional.nome}")
-            // Aqui você pode adicionar alguma lógica para destacar o profissional selecionado, se desejar
-        }
+            // Desmarca o profissional anteriormente selecionado (se houver)
+            selectedProfessionalView?.setBackgroundResource(android.R.color.transparent) // Remove qualquer background customizado
 
+            // Marca o profissional atualmente selecionado
+            view.setBackgroundResource(R.drawable.background_profissional_selecionado) // Crie este drawable
+
+            selectedProfessional = profissional
+            selectedProfessionalView = view
+            Log.d("Agendamento", "Profissional selecionado: ${profissional.nome}")
+        }
         return view
     }
 

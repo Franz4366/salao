@@ -31,5 +31,7 @@
     <string name="selecione_a_hora">Hora</string>
     <string name="foto_do_profissional">Foto do profissional</string>
     <string name="nome_do_profissional">Nome do Profissional</string>
+    <string name="digite_suas_observacoes_aqui">Digite suas observações aqui</string>
+    <string name="Ecluir">Excluir</string>
 
 </resources>

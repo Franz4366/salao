@@ -86,16 +86,35 @@
     <View
         android:id="@+id/rectangle_6"
         android:layout_width="349dp"
-        android:layout_height="500dp"
-        app:layout_constraintStart_toStartOf="@id/main"
-        app:layout_constraintEnd_toEndOf="@id/main"
-        app:layout_constraintTop_toBottomOf="@id/lista_de_ag"
+        android:layout_height="335dp"
         android:layout_marginTop="10dp"
-        android:background="#D9D9D9"
         android:alpha="0.45"
-        />
+        android:background="#D9D9D9"
+        app:layout_constraintBottom_toTopOf="@+id/bt_excluir"
+        app:layout_constraintEnd_toEndOf="@id/main"
+        app:layout_constraintStart_toStartOf="@id/main"
+        app:layout_constraintTop_toBottomOf="@id/lista_de_ag" />
 
-    <!-- Barra de navegação inferior -->
+    <FrameLayout
+        android:id="@+id/bt_excluir"
+        android:layout_width="321.4dp"
+        android:layout_height="53.58dp"
+        app:layout_constraintBottom_toTopOf="@id/group_35"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/rectangle_6">
+
+        <TextView
+            android:id="@+id/Excluir"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/Ecluir"
+            android:textAppearance="@style/agendar"
+            android:layout_gravity="center"
+            android:elevation="2dp" />
+    </FrameLayout>
+
     <FrameLayout
         android:id="@+id/group_35"
         android:layout_width="match_parent"

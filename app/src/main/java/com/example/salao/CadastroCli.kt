@@ -189,7 +189,7 @@ class CadastroCli : AppCompatActivity() {
     private fun preencherCamposCliente(nomeSelecionado: String) {
         val cliente = listaClientes.find { it.nome.equals(nomeSelecionado, ignoreCase = true) }
         cliente?.let {
-            telefoneEditText.setText(it.telefone ?: "")
+            telefoneEditText.setText(it.telefone?.toString() ?: "")
             emailEditText.setText(it.email ?: "")
             dataNascEditText.setText(formatarDataParaExibicao(it.dataNascimento))
         }
@@ -267,8 +267,7 @@ class CadastroCli : AppCompatActivity() {
         }
 
         val novoCliente = SupabaseClient.NovoCliente(
-            nome,
-            telefone.ifEmpty { null },
+            telefone.toString(),
             email.ifEmpty { null },
             dataFormatadaSupabase.ifEmpty { null })
 

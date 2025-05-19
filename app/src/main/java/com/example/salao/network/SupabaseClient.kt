@@ -12,13 +12,11 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import io.ktor.client.request.get
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
 import io.ktor.client.request.header
 import io.ktor.http.ContentType
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.http.HttpHeaders
+
 
 class SupabaseClient {
 
@@ -64,6 +62,16 @@ class SupabaseClient {
         @SerialName("data_nascimento") val dataNascimento: String? = null
     )
 
+    @Serializable
+    data class AgendamentoSupabase(
+        @SerialName("cliente_id") val clienteId: Int,
+        @SerialName("data") val dataAgendamento: String,
+        @SerialName("hora") val horaAgendamento: String,
+        @SerialName("profissional") val profissionalNome: String,
+        @SerialName("comentario") val comentario: String? = null
+        // Adicione outras colunas conforme necessário
+    )
+
     suspend fun buscarClientesPorNome(prefixo: String): List<Cliente> {
         val response: HttpResponse = client.get("$supabaseUrl/rest/v1/clientes") {
             parameter("select", "id, nome, telefone, email, data_nascimento")
@@ -78,10 +86,33 @@ class SupabaseClient {
         return response.body()
     }
 
+    suspend fun getClientePorNome(nome: String): Cliente? {
+        return try {
+            val response: HttpResponse = client.get("$supabaseUrl/rest/v1/clientes") {
+                parameter("select", "id, nome, telefone, email, data_nascimento")
+                parameter("nome", "eq.$nome")
+                parameter("limit", 1)
+            }
+
+            if (response.status.value in 200..299) {
+                val rawBody = response.bodyAsText()
+                Log.d("SupabaseClient", "Raw JSON Response: $rawBody") // Adicione este log
+                val clientes = Json.decodeFromString<List<Cliente>>(rawBody)
+                clientes.firstOrNull()
+            } else {
+                Log.e("SupabaseClient", "Erro ao buscar cliente por nome: ${response.status} - ${response.bodyAsText()}")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Erro ao buscar cliente por nome: ${e.message}")
+            null
+        }
+    }
+
     suspend fun cadastrarCliente(novoCliente: NovoCliente) {
         val response: HttpResponse = client.post("$supabaseUrl/rest/v1/clientes") {
             contentType(ContentType.Application.Json)
-            setBody(novoCliente)
+            setBody(Json.encodeToString(novoCliente))
             header("Prefer", "return=minimal")
         }
 
@@ -118,6 +149,34 @@ class SupabaseClient {
         } catch (e: Exception) {
             Log.e("SupabaseClient", "Erro ao obter profissionais: ${e.message}")
             emptyList() // Retorna uma lista vazia em caso de erro
+        }
+    }
+
+    suspend fun criarAgendamento(
+        clienteId: Int,
+        dataAgendamento: String,
+        horaAgendamento: String,
+        profissionalNome: String,
+        comentario: String? = null
+    ): Boolean {
+        return try {
+            val agendamento = AgendamentoSupabase(
+                clienteId = clienteId,
+                dataAgendamento = dataAgendamento,
+                horaAgendamento = horaAgendamento,
+                profissionalNome = profissionalNome,
+                comentario = comentario
+            )
+            val response: HttpResponse = client.post("$supabaseUrl/rest/v1/agendamentos") {
+                contentType(ContentType.Application.Json)
+                setBody(Json.encodeToString(agendamento))
+                header("Prefer", "return=minimal")
+            }
+
+            response.status.value in 200..299
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Erro ao criar agendamento: ${e.message}")
+            false
         }
     }
 }
