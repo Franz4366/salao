@@ -367,7 +367,7 @@ class Agendamento : AppCompatActivity() {
             navigateToLogin(this)
         }
         findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
-            navigateToAgendamento(this)
+
         }
         findViewById<ImageView>(R.id.icon_calendar)?.setOnClickListener {
             navigateToAgenda(this)

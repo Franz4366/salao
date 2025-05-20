@@ -76,6 +76,7 @@
             android:inputType="date"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"/>
+
         <FrameLayout
             android:id="@+id/rectangle_9"
             android:layout_width="250dp"

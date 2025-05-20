@@ -125,7 +125,7 @@ class LoginProfissional : AppCompatActivity() {
 
     private fun setupNavigationIcons() {
         findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
-            // Já está na tela inicial
+
         }
         findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
             navigateToAgendamento(this)

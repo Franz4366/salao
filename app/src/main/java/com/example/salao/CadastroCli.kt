@@ -101,7 +101,7 @@ class CadastroCli : AppCompatActivity() {
                 navigateToAgenda(this)
             }
             findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
-                navigateToCadastroCliente(this)
+
             }
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->

@@ -1,7 +1,6 @@
 package com.example.salao.network
 
 import android.util.Log
-import com.example.salao.Agendamento
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -17,13 +16,11 @@ import io.ktor.http.ContentType
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.http.HttpHeaders
 
-
 class SupabaseClient {
 
     private val _supabaseUrl = "https://kljubsnvkyeqbqyhxvfs.supabase.co"
     private val supabaseKey =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtsanVic252a3llcWJxeWh4dmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3OTAxNjIsImV4cCI6MjA1NzM2NjE2Mn0.FAKh25wwfPBNfA_Ynqr4ZdElikIBUfHPnVb1hLAxy8Y"
-
     private val _client = HttpClient {
         install(ContentNegotiation) {
             json(Json {
@@ -64,11 +61,12 @@ class SupabaseClient {
 
     @Serializable
     data class AgendamentoSupabase(
+        @SerialName("id") val id: Int? = null,
         @SerialName("cliente_id") val clienteId: Int,
         @SerialName("data") val dataAgendamento: String,
         @SerialName("hora") val horaAgendamento: String,
         @SerialName("profissional") val profissionalNome: String,
-        @SerialName("comentario") val comentario: String? = null
+        val comentario: String? = null
         // Adicione outras colunas conforme necessário
     )
 
@@ -86,6 +84,34 @@ class SupabaseClient {
         return response.body()
     }
 
+    suspend fun getAgendamentosPorData(data: String): List<AgendamentoSupabase> {
+        return try {
+            Log.d("SupabaseClient", "Buscando agendamentos no Supabase para a data: $data")
+            val response: HttpResponse =
+                client.get("$supabaseUrl/rest/v1/agendamentos") {
+                    parameter("select", "id, cliente_id, data, hora, profissional, comentario") // Include id in select
+                    parameter("data", "eq.$data")
+                }
+            Log.d("SupabaseClient", "Resposta do Supabase (status): ${response.status}")
+
+            if (response.status.isSuccess()) {
+                val rawBody = response.bodyAsText()
+                Log.d("SupabaseClient", "Raw JSON Response: $rawBody")
+                return Json.decodeFromString(rawBody)
+            } else {
+                Log.e(
+                    "SupabaseClient",
+                    "Erro ao buscar agendamentos por data: ${response.status} - ${response.bodyAsText()}"
+                )
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Erro ao buscar agendamentos por data: ${e.message}")
+            emptyList()
+        }
+    }
+
+
     suspend fun getClientePorNome(nome: String): Cliente? {
         return try {
             val response: HttpResponse = client.get("$supabaseUrl/rest/v1/clientes") {
@@ -96,16 +122,16 @@ class SupabaseClient {
 
             if (response.status.value in 200..299) {
                 val rawBody = response.bodyAsText()
-                Log.d("SupabaseClient", "Raw JSON Response: $rawBody") // Adicione este log
+                Log.d("SupabaseClient", "Raw JSON Response: $rawBody")
                 val clientes = Json.decodeFromString<List<Cliente>>(rawBody)
-                clientes.firstOrNull()
+                return clientes.firstOrNull()
             } else {
                 Log.e("SupabaseClient", "Erro ao buscar cliente por nome: ${response.status} - ${response.bodyAsText()}")
-                null
+                return null
             }
         } catch (e: Exception) {
             Log.e("SupabaseClient", "Erro ao buscar cliente por nome: ${e.message}")
-            null
+            return null
         }
     }
 
@@ -133,22 +159,23 @@ class SupabaseClient {
             throw Exception("Erro ao deletar cliente: $errorText")
         }
     }
-    suspend fun getProfissionais(): List<Agendamento.Profile> {
+
+    suspend fun getProfissionais(): List<com.example.salao.Agendamento.Profile> { // Use o caminho completo
         return try {
             val response: HttpResponse = client.get("$supabaseUrl/rest/v1/profiles") {
                 headers {
                     append("apikey", supabaseKey)
-                    append("Authorization", "Bearer $supabaseKey") // Se necessário
+                    append("Authorization", "Bearer $supabaseKey")
                 }
-                parameter("select", "nome,cargo,photo_url") // Seleciona as colunas que você precisa
-                parameter("cargo", "not.eq.null") //filtra profissionais que tem cargo preenchido
-            }.body()
-
-            // Converter a resposta para uma lista de objetos Profile
-            Json.decodeFromString(response.bodyAsText())
+                parameter("select", "nome,cargo,photo_url")
+                parameter("cargo", "not.eq.null")
+            }
+            val rawBody = response.bodyAsText() // Get raw body
+            Log.d("SupabaseClient", "Raw JSON Response: $rawBody")
+            return Json.decodeFromString(rawBody)
         } catch (e: Exception) {
             Log.e("SupabaseClient", "Erro ao obter profissionais: ${e.message}")
-            emptyList() // Retorna uma lista vazia em caso de erro
+            return emptyList()
         }
     }
 
@@ -176,7 +203,51 @@ class SupabaseClient {
             response.status.value in 200..299
         } catch (e: Exception) {
             Log.e("SupabaseClient", "Erro ao criar agendamento: ${e.message}")
-            false
+            return false
+        }
+    }
+
+    suspend fun getClientePorId(clienteId: Int): Cliente? {
+        return try {
+            val response: HttpResponse = client.get("$supabaseUrl/rest/v1/clientes") {
+                parameter("select", "id, nome")
+                parameter("id", "eq.$clienteId")
+                parameter("limit", 1)
+            }
+            if (response.status.isSuccess()) {
+                val rawBody = response.bodyAsText()
+                Log.d("SupabaseClient", "Raw JSON Response: $rawBody")
+                val clientes = Json.decodeFromString<List<Cliente>>(rawBody)
+                return clientes.firstOrNull()
+            } else {
+                Log.e("SupabaseClient", "Erro ao buscar cliente por ID: ${response.status} - ${response.bodyAsText()}")
+                return null
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Erro ao buscar cliente por ID: ${e.message}")
+            return null
+        }
+    }
+
+    suspend fun deletarAgendamentos(ids: List<Int>): Boolean {
+        return try {
+            val url = URLBuilder("$supabaseUrl/rest/v1/agendamentos")
+            ids.forEach { id ->
+                url.parameters.append("id", "eq.$id")
+            }
+            val urlFinal = url.build()
+            Log.d("deletarAgendamentos", "URL da requisição DELETE: $urlFinal")
+            val response = client.delete(urlFinal) {
+                contentType(ContentType.Application.Json)
+            }
+            Log.d("deletarAgendamentos", "Resposta da exclusão (status): ${response.status}")
+            val responseBody = response.bodyAsText()
+            Log.d("SupabaseClient", "Resposta da exclusão (body): $responseBody") // Log the response body
+            return response.status.isSuccess()
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Erro ao deletar agendamentos: ${e.message}")
+            return false
         }
     }
 }
+
