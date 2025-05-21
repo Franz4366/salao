@@ -111,6 +111,16 @@
         android:textAppearance="@style/sua_agenda"
         android:gravity="top" />
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/lista_agendamentos_recycler_view"
+        android:layout_width="349dp"
+        android:layout_height="320dp"
+        android:background="#D9D9D9"
+        app:layout_constraintStart_toStartOf="@id/main"
+        app:layout_constraintEnd_toEndOf="@id/main"
+        app:layout_constraintBottom_toTopOf="@+id/group_35"
+        app:layout_constraintTop_toBottomOf="@id/sua_agenda" />
+
     <FrameLayout
         android:id="@+id/group_35"
         android:layout_width="match_parent"

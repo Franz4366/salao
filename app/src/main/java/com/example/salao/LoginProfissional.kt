@@ -8,12 +8,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import coil3.load
-import coil3.request.crossfade
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgendamento
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
 import com.example.salao.network.SupabaseClient
+import com.example.salao.network.SupabaseClient.UserProfile
 import com.example.salao.utils.esconderBarrasDoSistema
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -24,17 +25,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class LoginProfissional : AppCompatActivity() {
 
     private lateinit var nomeProfissionalTextView: TextView
-    //private lateinit var fotoProfissionalImageView: ImageView  <-- Removido
     private val supabaseClient = SupabaseClient()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
     private var loggedInUserId: String? = null
+    private lateinit var agendamentoAdapter: AgendamentoAdapter
+    private lateinit var recyclerView: RecyclerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,23 +44,62 @@ class LoginProfissional : AppCompatActivity() {
         setContentView(R.layout.activity_login_profissional)
         esconderBarrasDoSistema(this)
 
-        // Inicializar as Views
         nomeProfissionalTextView = findViewById(R.id.nome_profissional)
-        //fotoProfissionalImageView = findViewById(R.id.ellipse_2)  <-- Removido
+        recyclerView = findViewById(R.id.lista_agendamentos_recycler_view)
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        agendamentoAdapter = AgendamentoAdapter(mutableListOf())
+        recyclerView.adapter = agendamentoAdapter
 
-        // Obter o ID do usuário logado do SharedPreferences
         val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
         loggedInUserId = sharedPreferences.getString("user_id", null)
 
         if (loggedInUserId != null) {
             coroutineScope.launch {
-                buscarPerfilDoUsuario(loggedInUserId!!) // Chama a nova função
+                var listaAgendamentoItems = mutableListOf<AgendamentoItem>()
+                try {
+                    buscarPerfilDoUsuario(loggedInUserId!!)
+
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    val dataAtual = dateFormat.format(Date())
+
+                    val agendamentosSupabase = supabaseClient.getAgendamentosPorData(dataAtual)
+                    Log.d("LoginProfissional", "Agendamentos do usuário: $agendamentosSupabase")
+
+                    agendamentosSupabase.forEach { agendamentoSupabase ->
+                        val cliente = supabaseClient.getClientePorId(agendamentoSupabase.clienteId)
+                        val nomeCliente = cliente?.nome ?: "Cliente não encontrado"
+                        val profissionalUuid = agendamentoSupabase.profissionalId
+                        val profissionalProfile = supabaseClient.getProfileById(profissionalUuid)
+                        val nomeDoProfissionalExibicao = profissionalProfile?.nome ?: "Profissional não encontrado"
+
+
+                        val fullDateTime = "${agendamentoSupabase.dataAgendamento} ${agendamentoSupabase.horaAgendamento}"
+                        val dateTimeFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                        val parsedDate: Date = dateTimeFormatter.parse(fullDateTime)!!
+
+                        val datePart = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(parsedDate)
+                        val timePart = SimpleDateFormat("HH:mm", Locale.getDefault()).format(parsedDate)
+
+
+                        listaAgendamentoItems.add(
+                            AgendamentoItem(
+                                id = agendamentoSupabase.id,
+                                clienteNome = nomeCliente,
+                                data = agendamentoSupabase.dataAgendamento,
+                                hora = agendamentoSupabase.horaAgendamento,
+                                profissionalNome = nomeDoProfissionalExibicao,
+                                comentario = agendamentoSupabase.comentario
+                            )
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e("LoginProfissional", "Erro ao buscar agendamentos ou perfil: ${e.message}")
+                }
+                agendamentoAdapter.atualizarLista(listaAgendamentoItems)
             }
         } else {
-            // Lidar com o caso em que não há ID de usuário (algo deu errado no login)
             Log.e("LoginProfissional", "ID do usuário não encontrado nas SharedPreferences.")
             nomeProfissionalTextView.text = "Erro ao obter ID"
-            //fotoProfissionalImageView.setImageResource(R.drawable.ellipse_2)  <-- Removido
         }
 
         setupNavigationIcons()
@@ -74,14 +115,6 @@ class LoginProfissional : AppCompatActivity() {
         super.onDestroy()
         coroutineScope.cancel()
     }
-
-    @Serializable
-    data class UserProfile(
-        val id: String,
-        val nome: String? = null,
-        @SerialName("photo_url") val photo_url: String? = null
-        // Adicione outros campos do seu perfil conforme necessário
-    )
 
     private suspend fun buscarPerfilDoUsuario(userId: String) {
         try {
@@ -100,32 +133,19 @@ class LoginProfissional : AppCompatActivity() {
             if (profiles.isNotEmpty()) {
                 val userProfile = profiles[0]
                 nomeProfissionalTextView.text = userProfile.nome ?: "Nome não encontrado"
-                //userProfile.photo_url?.let { imageUrl ->  <-- Removido
-                //    fotoProfissionalImageView.load(imageUrl) {  <-- Removido
-                //        val placeholderDrawable: Drawable? = resources.getDrawable(R.drawable.ellipse_2, theme)  <-- Removido
-                //        val errorDrawable: Drawable? = resources.getDrawable(R.drawable.ellipse_2, theme)  <-- Removido
-                //        placeholder(placeholderDrawable)  <-- Removido
-                //        error(errorDrawable)  <-- Removido
-                //        crossfade(true)  <-- Removido
-                //    }  <-- Removido
-                //} ?: run {  <-- Removido
-                //    fotoProfissionalImageView.setImageResource(R.drawable.ellipse_2)  <-- Removido
-                //}  <-- Removido
             } else {
                 nomeProfissionalTextView.text = "Usuário não encontrado"
-                //fotoProfissionalImageView.setImageResource(R.drawable.ellipse_2)  <-- Removido
             }
 
         } catch (e: Exception) {
             Log.e("LoginProfissional", "Erro ao buscar perfil do usuário: ${e.message}")
             nomeProfissionalTextView.text = "Erro ao carregar nome"
-            //fotoProfissionalImageView.setImageResource(R.drawable.ellipse_2)  <-- Removido
         }
     }
 
     private fun setupNavigationIcons() {
         findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
-
+            // Ação para o ícone home (já está na tela home)
         }
         findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
             navigateToAgendamento(this)

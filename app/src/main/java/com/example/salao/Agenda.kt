@@ -117,7 +117,6 @@ class Agenda : AppCompatActivity() {
         val adapter = DiaSemanaAdapter(dias)
         adapter.setOnDateClickListener(object : OnDateClickListener {
             override fun onDateClick(date: Date) {
-                Log.d("CALENDAR_CLICK", "Um dia foi clicado: $date")
 
                 selectedDate = date
                 Log.d("Agenda", "Data selecionada: $date")
@@ -181,32 +180,42 @@ class Agenda : AppCompatActivity() {
     }
 
     private fun buscarAgendamentosParaData(data: Date) {
-        val dataFormatada = formatoBancoDeDados.format(data)
-        Log.d("Agenda", "Buscando agendamentos para a data: $dataFormatada")
         coroutineScope.launch {
+            var listaAgendamentoItems = mutableListOf<AgendamentoItem>()
             try {
-                val agendamentosSupabase = supabaseClient.getAgendamentosPorData(dataFormatada)
-                Log.d("Agenda", "Agendamentos do Supabase recebidos: ${agendamentosSupabase.size}")
-                val listaAgendamentosItem = agendamentosSupabase.map { agendamento ->
-                    Log.d("Agenda", "Processando agendamento: $agendamento")
-                    val cliente = supabaseClient.getClientePorId(agendamento.clienteId)
-                    Log.d("Agenda", "Cliente encontrado: $cliente")
+                // Obtém a data atual ou a data desejada para a agenda
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val dataParaAgenda = dateFormat.format(Date()) // Ou uma data selecionada pelo usuário
 
-                    AgendamentoItem(
-                        id = agendamento.id,
-                        clienteNome = cliente?.nome ?: "Cliente Desconhecido",
-                        data = formatoExibicao.format(formatoBancoDeDados.parse(agendamento.dataAgendamento)!!),
-                        hora = agendamento.horaAgendamento,
-                        profissionalNome = agendamento.profissionalNome,
-                        comentario = agendamento.comentario
+                val agendamentosSupabase = supabaseClient.getAgendamentosPorData(dataParaAgenda)
+                Log.d("Agenda", "Agendamentos para a data $dataParaAgenda: $agendamentosSupabase")
+
+                for (agendamentoSupabase in agendamentosSupabase) {
+                    val cliente = supabaseClient.getClientePorId(agendamentoSupabase.clienteId)
+                    val nomeCliente = cliente?.nome ?: "Cliente não encontrado"
+
+                    // === Ponto Crucial: Buscar o nome do profissional ===
+                    val profissionalUuid = agendamentoSupabase.profissionalId
+                    val profissionalProfile = supabaseClient.getProfileById(profissionalUuid)
+                    val nomeDoProfissionalExibicao = profissionalProfile?.nome ?: "Profissional não encontrado"
+
+                    listaAgendamentoItems.add(
+                        AgendamentoItem(
+                            id = agendamentoSupabase.id,
+                            clienteNome = nomeCliente,
+                            data = agendamentoSupabase.dataAgendamento,
+                            hora = agendamentoSupabase.horaAgendamento,
+                            profissionalNome = nomeDoProfissionalExibicao, // <== Use o nome buscado aqui
+                            comentario = agendamentoSupabase.comentario
+                        )
                     )
                 }
-                Log.d("Agenda", "Lista de AgendamentoItem criada: ${listaAgendamentosItem.size}")
-                agendamentoAdapter.atualizarLista(listaAgendamentosItem)
             } catch (e: Exception) {
-                Log.e("Agenda", "Erro ao buscar agendamentos: ${e.message}")
-                mostrarToast("Erro ao buscar agendamentos")
+                Log.e("Agenda", "Erro ao carregar agendamentos: ${e.message}")
+                // Opcional: exibir uma mensagem de erro ao usuário
             }
+            // Atualizar o adaptador da RecyclerView com os novos dados
+            agendamentoAdapter.atualizarLista(listaAgendamentoItems)
         }
     }
     override fun onDestroy() {

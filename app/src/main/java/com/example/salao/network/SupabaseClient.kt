@@ -33,12 +33,9 @@ class SupabaseClient {
             header(HttpHeaders.Authorization, "Bearer $supabaseKey")
         }
     }
-
-    // Propriedade pública para acessar a URL do Supabase
     val supabaseUrl: String
         get() = _supabaseUrl
 
-    // Propriedade pública para acessar o HttpClient
     val client: HttpClient
         get() = _client
 
@@ -65,9 +62,16 @@ class SupabaseClient {
         @SerialName("cliente_id") val clienteId: Int,
         @SerialName("data") val dataAgendamento: String,
         @SerialName("hora") val horaAgendamento: String,
-        @SerialName("profissional") val profissionalNome: String,
+        @SerialName("profissional") val profissionalId: String,
         val comentario: String? = null
         // Adicione outras colunas conforme necessário
+    )
+
+    @Serializable
+    data class UserProfile(
+        val id: String,
+        val nome: String? = null,
+        @SerialName("photo_url") val photo_url: String? = null
     )
 
     suspend fun buscarClientesPorNome(prefixo: String): List<Cliente> {
@@ -84,12 +88,43 @@ class SupabaseClient {
         return response.body()
     }
 
-    suspend fun getAgendamentosPorData(data: String): List<AgendamentoSupabase> {
+    suspend fun getProfileById(profileId: String): UserProfile? {
+        return try {
+            Log.d(
+                "SupabaseClient",
+                "Buscando perfil do profissional no Supabase com ID (UUID): $profileId"
+            )
+            val response: HttpResponse = client.get("$supabaseUrl/rest/v1/profiles") {
+                parameter("select", "id, nome")
+                parameter("id", "eq.$profileId")
+                header("Accept", "application/json")
+            }
+
+            if (response.status.isSuccess()) {
+                val rawBody = response.bodyAsText()
+                Log.d("SupabaseClient", "Raw JSON Response: $rawBody")
+                val profiles: List<UserProfile> = Json.decodeFromString(rawBody)
+                return profiles.firstOrNull()
+            } else {
+                Log.e(
+                    "SupabaseClient",
+                    "Erro ao buscar perfil do profissional: ${response.status} - ${response.bodyAsText()}"
+                )
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Erro ao buscar perfil do profissional: ${e.message}")
+            null
+        }
+    }
+
+
+        suspend fun getAgendamentosPorData(data: String): List<AgendamentoSupabase> {
         return try {
             Log.d("SupabaseClient", "Buscando agendamentos no Supabase para a data: $data")
             val response: HttpResponse =
                 client.get("$supabaseUrl/rest/v1/agendamentos") {
-                    parameter("select", "id, cliente_id, data, hora, profissional, comentario") // Include id in select
+                    parameter("select", "id, cliente_id, data, hora, profissional, comentario")
                     parameter("data", "eq.$data")
                 }
             Log.d("SupabaseClient", "Resposta do Supabase (status): ${response.status}")
@@ -97,7 +132,7 @@ class SupabaseClient {
             if (response.status.isSuccess()) {
                 val rawBody = response.bodyAsText()
                 Log.d("SupabaseClient", "Raw JSON Response: $rawBody")
-                return Json.decodeFromString(rawBody)
+                return Json.decodeFromString<List<AgendamentoSupabase>>(rawBody)
             } else {
                 Log.e(
                     "SupabaseClient",
@@ -183,7 +218,7 @@ class SupabaseClient {
         clienteId: Int,
         dataAgendamento: String,
         horaAgendamento: String,
-        profissionalNome: String,
+        profissionalId: String,
         comentario: String? = null
     ): Boolean {
         return try {
@@ -191,7 +226,7 @@ class SupabaseClient {
                 clienteId = clienteId,
                 dataAgendamento = dataAgendamento,
                 horaAgendamento = horaAgendamento,
-                profissionalNome = profissionalNome,
+                profissionalId = profissionalId,
                 comentario = comentario
             )
             val response: HttpResponse = client.post("$supabaseUrl/rest/v1/agendamentos") {
@@ -250,4 +285,3 @@ class SupabaseClient {
         }
     }
 }
-

@@ -200,7 +200,7 @@ class Agendamento : AppCompatActivity() {
                             clienteId = clienteId,
                             dataAgendamento = dataAgendamento,
                             horaAgendamento = horaAgendamento,
-                            profissionalNome = nomeProfissional,
+                            profissionalId = nomeProfissional,
                             comentario = observacoes
                         )
 
