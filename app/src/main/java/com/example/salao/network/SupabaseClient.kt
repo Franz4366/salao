@@ -11,16 +11,16 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import io.ktor.client.request.header
-import io.ktor.http.ContentType
 import io.ktor.client.plugins.defaultRequest
-import io.ktor.http.HttpHeaders
+import io.ktor.http.URLBuilder
+import com.example.salao.BuildConfig
+
 
 class SupabaseClient {
 
-    private val _supabaseUrl = "https://kljubsnvkyeqbqyhxvfs.supabase.co"
-    private val supabaseKey =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtsanVic252a3llcWJxeWh4dmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3OTAxNjIsImV4cCI6MjA1NzM2NjE2Mn0.FAKh25wwfPBNfA_Ynqr4ZdElikIBUfHPnVb1hLAxy8Y"
+    private val _supabaseUrl = BuildConfig.SUPABASE_URL
+    private val _supabaseKey = BuildConfig.SUPABASE_ANON_KEY
+
     private val _client = HttpClient {
         install(ContentNegotiation) {
             json(Json {
@@ -29,12 +29,17 @@ class SupabaseClient {
             })
         }
         defaultRequest {
-            header("apikey", supabaseKey)
-            header(HttpHeaders.Authorization, "Bearer $supabaseKey")
+            header("apikey", _supabaseKey)
+            header(HttpHeaders.Authorization, "Bearer $_supabaseKey")
+            contentType(ContentType.Application.Json)
         }
     }
+
     val supabaseUrl: String
         get() = _supabaseUrl
+
+    val supabaseKey: String
+        get() = _supabaseKey
 
     val client: HttpClient
         get() = _client
@@ -71,8 +76,10 @@ class SupabaseClient {
     data class UserProfile(
         val id: String,
         val nome: String? = null,
-        @SerialName("photo_url") val photo_url: String? = null
+        @SerialName("photo_url") val photo_url: String? = null,
+        val cargo: String? = null // Adicione cargo se for usar na consulta de profissionais
     )
+
 
     suspend fun buscarClientesPorNome(prefixo: String): List<Cliente> {
         val response: HttpResponse = client.get("$supabaseUrl/rest/v1/clientes") {
@@ -95,10 +102,12 @@ class SupabaseClient {
                 "Buscando perfil do profissional no Supabase com ID (UUID): $profileId"
             )
             val response: HttpResponse = client.get("$supabaseUrl/rest/v1/profiles") {
-                parameter("select", "id, nome")
+                parameter("select", "id, nome, photo_url, cargo") // Inclua cargo se for usar na resposta
                 parameter("id", "eq.$profileId")
                 header("Accept", "application/json")
             }
+            Log.d("SupabaseData", "Raw Supabase Response (Status): ${response.status}") // Imprima a resposta bruta
+
 
             if (response.status.isSuccess()) {
                 val rawBody = response.bodyAsText()
@@ -119,7 +128,7 @@ class SupabaseClient {
     }
 
 
-        suspend fun getAgendamentosPorData(data: String): List<AgendamentoSupabase> {
+    suspend fun getAgendamentosPorData(data: String): List<AgendamentoSupabase> {
         return try {
             Log.d("SupabaseClient", "Buscando agendamentos no Supabase para a data: $data")
             val response: HttpResponse =
@@ -195,19 +204,17 @@ class SupabaseClient {
         }
     }
 
-    suspend fun getProfissionais(): List<com.example.salao.Agendamento.Profile> { // Use o caminho completo
+    suspend fun getProfissionais(): List<com.example.salao.Agendamento.Profile> {
         return try {
             val response: HttpResponse = client.get("$supabaseUrl/rest/v1/profiles") {
-                headers {
-                    append("apikey", supabaseKey)
-                    append("Authorization", "Bearer $supabaseKey")
-                }
-                parameter("select", "nome,cargo,photo_url")
+
+                parameter("select", "id,nome,cargo,photo_url")
                 parameter("cargo", "not.eq.null")
             }
-            val rawBody = response.bodyAsText() // Get raw body
-            Log.d("SupabaseClient", "Raw JSON Response: $rawBody")
-            return Json.decodeFromString(rawBody)
+            val rawBody = response.bodyAsText()
+            Log.d("SupabaseClient", "Raw JSON Response (Profissionais): $rawBody")
+
+            return Json.decodeFromString<List<com.example.salao.Agendamento.Profile>>(rawBody)
         } catch (e: Exception) {
             Log.e("SupabaseClient", "Erro ao obter profissionais: ${e.message}")
             return emptyList()
@@ -251,7 +258,7 @@ class SupabaseClient {
             }
             if (response.status.isSuccess()) {
                 val rawBody = response.bodyAsText()
-                Log.d("SupabaseClient", "Raw JSON Response: $rawBody")
+                Log.d("SupabaseClient", "Raw JSON Response (Cliente por ID): $rawBody")
                 val clientes = Json.decodeFromString<List<Cliente>>(rawBody)
                 return clientes.firstOrNull()
             } else {
@@ -266,7 +273,7 @@ class SupabaseClient {
 
     suspend fun deletarAgendamentos(ids: List<Int>): Boolean {
         return try {
-            val url = URLBuilder("$supabaseUrl/rest/v1/agendamentos")
+            val url = URLBuilder("$supabaseUrl/rest/v1/agendamentos") // Agora URLBuilder será reconhecido
             ids.forEach { id ->
                 url.parameters.append("id", "eq.$id")
             }

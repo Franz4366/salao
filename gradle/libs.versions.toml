@@ -1,16 +1,16 @@
 [versions]
-agp = "8.9.3"
+agp = "8.10.0"
 appcompat = "1.7.0"
 coilCompose = "3.2.0"
 coreKtx = "1.16.0"
-kotlin = "2.1.20"
+kotlin = "2.0.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 activity = "1.10.1"
 constraintlayout = "2.2.1"
 kotlinxSerializationJson = "1.8.0"
-ktorClientCore = "3.1.2"
+ktorClientCore = "2.3.11"
 material = "1.12.0"
 picasso = "2.8"
 playServicesAuth = "21.3.0"
@@ -37,4 +37,5 @@ play-services-auth = { module = "com.google.android.gms:play-services-auth", ver
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+jetbrains-kotlin-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 

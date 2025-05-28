@@ -45,7 +45,6 @@ import com.squareup.picasso.Transformation
 
 class Agendamento : AppCompatActivity() {
 
-    // Variáveis globais para os componentes da interface
     private lateinit var calendarRecyclerView: RecyclerView
     private lateinit var tvMes: TextView
     private var calendar: Calendar = Calendar.getInstance()
@@ -126,15 +125,12 @@ class Agendamento : AppCompatActivity() {
             Log.d("Agendamento", "Cliente selecionado (OnItemClickListener): $selectedClientName")
 
             Log.d("Agendamento", "Cliente selecionado: $selectedClientName")
-            // Opcional: Você pode limpar o foco do AutoCompleteTextView ou esconder o teclado aqui
         }
 
-        // Configurar a caixa de hora para exibir 8:00 inicialmente
         cxHora.text = "8:00"
         selectedHour = 8
         selectedMinute = 0
 
-        // Configurar o clique do TextView cxHora para exibir o TimePickerDialog
         cxHora.setOnClickListener {
             showTimePickerDialog()
         }
@@ -146,11 +142,9 @@ class Agendamento : AppCompatActivity() {
                 count: Int,
                 after: Int
             ) {
-                // Não precisamos fazer nada aqui
             }
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                // Não precisamos fazer nada aqui
             }
 
             override fun afterTextChanged(s: Editable?) {
@@ -260,7 +254,6 @@ class Agendamento : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 Log.e("Agendamento", "Erro ao carregar profissionais: ${e.message}")
-                // Lide com o erro (ex: exibir uma mensagem para o usuário)
                 val mensagemTextView = TextView(this@Agendamento)
                 mensagemTextView.text = "Erro ao carregar profissionais."
                 mensagemTextView.layoutParams = LinearLayout.LayoutParams(
@@ -295,7 +288,7 @@ class Agendamento : AppCompatActivity() {
             selectedProfessionalView?.setBackgroundResource(android.R.color.transparent) // Remove qualquer background customizado
 
             // Marca o profissional atualmente selecionado
-            view.setBackgroundResource(R.drawable.background_profissional_selecionado) // Crie este drawable
+            view.setBackgroundResource(R.drawable.background_profissional_selecionado)
 
             selectedProfessional = profissional
             selectedProfessionalView = view
@@ -317,7 +310,7 @@ class Agendamento : AppCompatActivity() {
                 source.recycle()
             }
 
-            val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888) // Correção aqui
+            val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
             val paint = Paint()
             val shader = android.graphics.BitmapShader(
@@ -339,7 +332,6 @@ class Agendamento : AppCompatActivity() {
             return "circle"
         }
     }
-
 
     private fun showTimePickerDialog() {
         val calendar = Calendar.getInstance()

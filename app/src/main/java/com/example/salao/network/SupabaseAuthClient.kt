@@ -10,11 +10,13 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import com.example.salao.BuildConfig
+import android.util.Log
 
 class SupabaseAuthClient {
 
-    private val supabaseUrl = "https://kljubsnvkyeqbqyhxvfs.supabase.co"
-    private val supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtsanVic252a3llcWJxeWh4dmZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3OTAxNjIsImV4cCI6MjA1NzM2NjE2Mn0.FAKh25wwfPBNfA_Ynqr4ZdElikIBUfHPnVb1hLAxy8Y"
+    private val supabaseUrl = BuildConfig.SUPABASE_URL
+    private val supabaseKey = BuildConfig.SUPABASE_ANON_KEY
 
     private val client = HttpClient {
         install(ContentNegotiation) {

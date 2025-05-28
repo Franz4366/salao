@@ -1,7 +1,11 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("org.jetbrains.kotlin.plugin.serialization") version libs.versions.kotlin.get()
+    alias(libs.plugins.jetbrains.kotlin.compose.compiler)
+
 }
 
 android {
@@ -26,6 +30,12 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug {
+            val properties = Properties()
+            properties.load(project.rootProject.file("local.properties").inputStream())
+            buildConfigField ("String", "SUPABASE_URL", "\"${properties.getProperty("SUPABASE_URL")}\"")
+            buildConfigField ("String", "SUPABASE_ANON_KEY", "\"${properties.getProperty("SUPABASE_ANON_KEY")}\"")
+        }
     }
 
     compileOptions {
@@ -35,6 +45,16 @@ android {
 
     kotlinOptions {
         jvmTarget = "11"
+    }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
     }
 }
 
