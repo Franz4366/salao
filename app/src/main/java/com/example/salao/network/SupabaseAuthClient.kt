@@ -12,6 +12,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import com.example.salao.BuildConfig
 import android.util.Log
+import kotlin.math.log
 
 class SupabaseAuthClient {
 
@@ -62,4 +63,20 @@ class SupabaseAuthClient {
         val email: String? = null,
         @SerialName("email_confirmed_at") val emailConfirmedAt: String? = null
     )
+
+    suspend fun recoverPassword(email: String): String {
+        val response: HttpResponse = client.post("$supabaseUrl/auth/v1/recover") {
+            contentType(ContentType.Application.Json)
+            headers {
+                append("apikey", supabaseKey)
+            }
+            setBody(mapOf("email" to email))
+        }
+        if (!response.status.isSuccess()) {
+            val errorText = response.bodyAsText()
+            throw Exception("Erro ao recuperar senha: $errorText")
+        }
+        return response.bodyAsText()
+    }
+
 }

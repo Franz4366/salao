@@ -3,12 +3,16 @@ package com.example.salao
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.salao.network.SupabaseAuthClient
 import kotlinx.coroutines.launch
 import com.example.salao.utils.esconderBarrasDoSistema
+import android.widget.EditText
+import android.widget.Button
+import android.widget.ProgressBar
 
 
 class MainActivity : AppCompatActivity() {
@@ -36,6 +40,27 @@ class MainActivity : AppCompatActivity() {
         val passwordEditText = findViewById<EditText>(R.id.edit_senha)
         val loginButton = findViewById<Button>(R.id.bottom)
         val progressBar = findViewById<ProgressBar>(R.id.progress_bar)
+        val forgotPasswordButton = findViewById<TextView>(R.id.esqueceu_su)
+
+        forgotPasswordButton.setOnClickListener {
+            val email = emailEditText.text.toString().trim()
+            if (email.isEmpty()) {
+                Toast.makeText(this, "Digite um email válido!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            progressBar.visibility = ProgressBar.VISIBLE
+
+            lifecycleScope.launch {
+                try {
+                    authClient.recoverPassword(email)
+                    Toast.makeText(this@MainActivity, "Email enviado com sucesso!", Toast.LENGTH_LONG).show()
+                } catch (e: Exception) {
+                    Toast.makeText(this@MainActivity, "Erro ao enviar email: ${e.message}", Toast.LENGTH_LONG).show()
+                } finally {
+                    progressBar.visibility = View.GONE
+                }
+            }
+        }
 
         loginButton.setOnClickListener {
             val email = emailEditText.text.toString().trim()
@@ -78,4 +103,5 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
 }
