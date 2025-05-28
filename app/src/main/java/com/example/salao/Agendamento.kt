@@ -71,6 +71,7 @@ class Agendamento : AppCompatActivity() {
 
     @Serializable
     data class Profile(
+        @SerialName("id") val id: String,
         @SerialName("nome") val nome: String,
         @SerialName("cargo") val cargo: String,
         @SerialName("photo_url") val fotoUrl: String?

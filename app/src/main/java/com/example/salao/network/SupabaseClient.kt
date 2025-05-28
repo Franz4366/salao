@@ -77,7 +77,7 @@ class SupabaseClient {
         val id: String,
         val nome: String? = null,
         @SerialName("photo_url") val photo_url: String? = null,
-        val cargo: String? = null // Adicione cargo se for usar na consulta de profissionais
+        val cargo: String? = null
     )
 
 
@@ -102,11 +102,11 @@ class SupabaseClient {
                 "Buscando perfil do profissional no Supabase com ID (UUID): $profileId"
             )
             val response: HttpResponse = client.get("$supabaseUrl/rest/v1/profiles") {
-                parameter("select", "id, nome, photo_url, cargo") // Inclua cargo se for usar na resposta
+                parameter("select", "id, nome, photo_url, cargo")
                 parameter("id", "eq.$profileId")
                 header("Accept", "application/json")
             }
-            Log.d("SupabaseData", "Raw Supabase Response (Status): ${response.status}") // Imprima a resposta bruta
+            Log.d("SupabaseData", "Raw Supabase Response (Status): ${response.status}")
 
 
             if (response.status.isSuccess()) {

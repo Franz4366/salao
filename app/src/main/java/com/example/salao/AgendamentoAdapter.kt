@@ -39,7 +39,7 @@ class AgendamentoAdapter(private var agendamentos: MutableList<AgendamentoItem>)
 
     class AgendamentoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvClienteNome: TextView = itemView.findViewById(R.id.tv_cliente_nome)
-        val tvDataHora: TextView = itemView.findViewById(R.id.tv_data_hora) // Este TextView exibirá a data e a hora combinadas
+        val tvDataHora: TextView = itemView.findViewById(R.id.tv_data_hora)
         val tvProfissional: TextView = itemView.findViewById(R.id.tv_profissional)
         val tvObservacao: TextView = itemView.findViewById(R.id.tv_observacao)
         val checkboxSelecionar: CheckBox = itemView.findViewById(R.id.checkbox_selecionar)
@@ -57,9 +57,7 @@ class AgendamentoAdapter(private var agendamentos: MutableList<AgendamentoItem>)
         holder.tvProfissional.text = agendamento.profissionalNome
         holder.tvObservacao.text = agendamento.comentario ?: ""
 
-        // --- LÓGICA DE FORMATAÇÃO DE DATA E HORA AQUI ---
         try {
-            // Assume que agendamento.data está no formato "yyyy-MM-dd" e agendamento.hora está no formato "HH:mm"
             val dataOriginalString = agendamento.data
             val horaOriginalString = agendamento.hora
 
