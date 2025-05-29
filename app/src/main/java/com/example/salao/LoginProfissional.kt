@@ -14,7 +14,6 @@ import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAge
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgendamento
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
 import com.example.salao.network.SupabaseClient
-import com.example.salao.network.SupabaseClient.UserProfile
 import com.example.salao.utils.esconderBarrasDoSistema
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -28,6 +27,11 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+// NOVOS IMPORTS PARA AS CLASSES DE MODELO UNIFICADAS
+import com.example.salao.model.Profile // Agora importando do pacote model!
+import com.example.salao.model.Cliente // Para o método getClientePorId
+import com.example.salao.model.AgendamentoSupabase // Para os agendamentos
 
 class LoginProfissional : AppCompatActivity() {
 
@@ -55,20 +59,28 @@ class LoginProfissional : AppCompatActivity() {
 
         if (loggedInUserId != null) {
             coroutineScope.launch {
-                var listaAgendamentoItems = mutableListOf<AgendamentoItem>()
+                val listaAgendamentoItems = mutableListOf<AgendamentoItem>() // Alterado para 'val' pois a lista é mutável internamente
                 try {
                     buscarPerfilDoUsuario(loggedInUserId!!)
 
                     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                     val dataAtual = dateFormat.format(Date())
 
-                    val agendamentosSupabase = supabaseClient.getAgendamentosPorData(dataAtual)
-                    Log.d("LoginProfissional", "Agendamentos do usuário: $agendamentosSupabase")
+                    val agendamentosSupabase = supabaseClient.getAgendamentosPorData(dataAtual, loggedInUserId)
+                    Log.d("LoginProfissional", "Agendamentos do usuário: $loggedInUserId: $agendamentosSupabase")
+
+                    if (agendamentosSupabase.isEmpty()) {
+                        Log.d("LoginProfissional", "Nenhum agendamento encontrado para a data atual.")
+                        // Aqui, você pode querer limpar o adapter ou mostrar uma mensagem
+                        agendamentoAdapter.atualizarLista(emptyList()) // Limpa a lista se não houver agendamentos
+                        return@launch
+                    }
 
                     agendamentosSupabase.forEach { agendamentoSupabase ->
                         val cliente = supabaseClient.getClientePorId(agendamentoSupabase.clienteId)
                         val nomeCliente = cliente?.nome ?: "Cliente não encontrado"
                         val profissionalUuid = agendamentoSupabase.profissionalId
+                        // Use a classe Profile unificada aqui
                         val profissionalProfile = supabaseClient.getProfileById(profissionalUuid)
                         val nomeDoProfissionalExibicao = profissionalProfile?.nome ?: "Profissional não encontrado"
 
@@ -77,16 +89,17 @@ class LoginProfissional : AppCompatActivity() {
                         val dateTimeFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
                         val parsedDate: Date = dateTimeFormatter.parse(fullDateTime)!!
 
-                        val datePart = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(parsedDate)
-                        val timePart = SimpleDateFormat("HH:mm", Locale.getDefault()).format(parsedDate)
+                        // Estas duas linhas são redundantes se você já tem os componentes separados
+                        // val datePart = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(parsedDate)
+                        // val timePart = SimpleDateFormat("HH:mm", Locale.getDefault()).format(parsedDate)
 
 
                         listaAgendamentoItems.add(
                             AgendamentoItem(
                                 id = agendamentoSupabase.id,
                                 clienteNome = nomeCliente,
-                                data = agendamentoSupabase.dataAgendamento,
-                                hora = agendamentoSupabase.horaAgendamento,
+                                data = agendamentoSupabase.dataAgendamento, // Usando a data original
+                                hora = agendamentoSupabase.horaAgendamento, // Usando a hora original
                                 profissionalNome = nomeDoProfissionalExibicao,
                                 comentario = agendamentoSupabase.comentario
                             )
@@ -116,6 +129,7 @@ class LoginProfissional : AppCompatActivity() {
         coroutineScope.cancel()
     }
 
+    // Método para buscar perfil do usuário, agora usando a classe Profile unificada
     private suspend fun buscarPerfilDoUsuario(userId: String) {
         try {
             val response: HttpResponse = supabaseClient.client.get("${supabaseClient.supabaseUrl}/rest/v1/profiles") {
@@ -129,7 +143,8 @@ class LoginProfissional : AppCompatActivity() {
                 throw Exception("Erro ao buscar perfil do usuário: $errorText")
             }
 
-            val profiles: List<UserProfile> = response.body<List<UserProfile>>()
+            // Use a classe Profile unificada aqui
+            val profiles: List<Profile> = response.body<List<Profile>>()
             if (profiles.isNotEmpty()) {
                 val userProfile = profiles[0]
                 nomeProfissionalTextView.text = userProfile.nome ?: "Nome não encontrado"

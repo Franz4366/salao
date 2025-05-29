@@ -24,8 +24,6 @@ import java.util.Locale
 import android.widget.LinearLayout
 import com.example.salao.utils.gerarDiasDoMes
 import com.squareup.picasso.Picasso
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,11 +35,13 @@ import android.graphics.Paint
 import android.view.LayoutInflater
 import android.widget.EditText
 import android.widget.Toast
+import com.example.salaa.DiaSemanaAdapter
+import com.example.salaa.OnDateClickListener
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
-import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgendamento
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToLogin
 import com.squareup.picasso.Transformation
+import com.example.salao.model.Profile
 
 class Agendamento : AppCompatActivity() {
 
@@ -60,7 +60,7 @@ class Agendamento : AppCompatActivity() {
     private lateinit var containerProfissionais: LinearLayout
     private var selectedDate: Date? = null
     private var selectedClientName: String? = null
-    private var selectedProfessional: Profile? = null
+    private var selectedProfessional: Profile? = null // Usa a Profile importada
     private var selectedHour: Int? = null
     private var selectedMinute: Int? = null
     private var selectedProfessionalView: View? = null
@@ -68,14 +68,6 @@ class Agendamento : AppCompatActivity() {
     // Variáveis para a pesquisa de clientes
     private val supabaseClient = SupabaseClient()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
-
-    @Serializable
-    data class Profile(
-        @SerialName("id") val id: String,
-        @SerialName("nome") val nome: String,
-        @SerialName("cargo") val cargo: String,
-        @SerialName("photo_url") val fotoUrl: String?
-    )
 
     private fun buscarClientes(prefixo: String) {
         coroutineScope.launch {
@@ -215,7 +207,6 @@ class Agendamento : AppCompatActivity() {
             exibirMensagem("Por favor, selecione a data, o cliente, a hora e o profissional.")
         }
     }
-
     private fun limparCamposAgendamento() {
         selectedDate = null
         selectedClientName = null
@@ -403,12 +394,11 @@ class Agendamento : AppCompatActivity() {
             .format(calendar.time)
             .replaceFirstChar { it.uppercase() }
 
-        val adapter = DiaSemanaAdapter(dias) // Passa a lista de Date diretamente
+        val adapter = DiaSemanaAdapter(dias, calendar) // Passa a lista de Date diretamente
         adapter.setOnDateClickListener(object : OnDateClickListener {
             override fun onDateClick(date: Date) {
                 selectedDate = date
                 Log.d("Agendamento", "Data selecionada: $date")
-                // Aqui você pode adicionar alguma lógica para destacar a data selecionada visualmente, se desejar
             }
         })
         calendarRecyclerView.adapter = adapter

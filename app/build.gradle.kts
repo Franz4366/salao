@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
     id("org.jetbrains.kotlin.plugin.serialization") version libs.versions.kotlin.get()
     alias(libs.plugins.jetbrains.kotlin.compose.compiler)
-
 }
 
 android {
@@ -22,6 +21,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { inputStream ->
+            localProperties.load(inputStream)
+        }
+    } else {
+        println("WARNING: local.properties file not found. Make sure it exists in the project root.")
+    }
+    // --- FIM DO NOVO BLOCO ---
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -29,12 +39,14 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Chamadas buildConfigField para o tipo 'release'
+            buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL", "")}\"")
+            buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "")}\"")
         }
         debug {
-            val properties = Properties()
-            properties.load(project.rootProject.file("local.properties").inputStream())
-            buildConfigField ("String", "SUPABASE_URL", "\"${properties.getProperty("SUPABASE_URL")}\"")
-            buildConfigField ("String", "SUPABASE_ANON_KEY", "\"${properties.getProperty("SUPABASE_ANON_KEY")}\"")
+            // Chamadas buildConfigField para o tipo 'debug'
+            buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL", "")}\"")
+            buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "")}\"")
         }
     }
 
@@ -48,7 +60,7 @@ android {
     }
     buildFeatures {
         compose = true
-        buildConfig = true
+        buildConfig = true // Garante que BuildConfig seja gerado
     }
 
     packaging {
@@ -82,5 +94,4 @@ dependencies {
 
     implementation(libs.coil.compose)
     implementation (libs.picasso)
-
 }

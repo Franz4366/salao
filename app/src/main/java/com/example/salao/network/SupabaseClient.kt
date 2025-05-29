@@ -1,20 +1,32 @@
 package com.example.salao.network
 
 import android.util.Log
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import io.ktor.client.plugins.defaultRequest
-import io.ktor.http.URLBuilder
 import com.example.salao.BuildConfig
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.URLBuilder
+import io.ktor.http.contentType
+import io.ktor.http.isSuccess
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.json.Json
 
+// IMPORTS DOS SEUS MODELOS UNIFICADOS
+import com.example.salao.model.NovoCliente
+import com.example.salao.model.Cliente
+import com.example.salao.model.AgendamentoSupabase
+import com.example.salao.model.Profile // Agora importando do pacote model!
 
 class SupabaseClient {
 
@@ -44,42 +56,7 @@ class SupabaseClient {
     val client: HttpClient
         get() = _client
 
-    @Serializable
-    data class NovoCliente(
-        val nome: String,
-        val telefone: String? = null,
-        val email: String? = null,
-        @SerialName("data_nascimento") val dataNascimento: String? = null
-    )
-
-    @Serializable
-    data class Cliente(
-        val id: Int,
-        val nome: String,
-        val telefone: String? = null,
-        val email: String? = null,
-        @SerialName("data_nascimento") val dataNascimento: String? = null
-    )
-
-    @Serializable
-    data class AgendamentoSupabase(
-        @SerialName("id") val id: Int? = null,
-        @SerialName("cliente_id") val clienteId: Int,
-        @SerialName("data") val dataAgendamento: String,
-        @SerialName("hora") val horaAgendamento: String,
-        @SerialName("profissional") val profissionalId: String,
-        val comentario: String? = null
-        // Adicione outras colunas conforme necessário
-    )
-
-    @Serializable
-    data class UserProfile(
-        val id: String,
-        val nome: String? = null,
-        @SerialName("photo_url") val photo_url: String? = null,
-        val cargo: String? = null
-    )
-
+    // REMOVIDAS AS DEFINIÇÕES DAS DATA CLASSES QUE ESTÃO AGORA EM SupabaseModels.kt
 
     suspend fun buscarClientesPorNome(prefixo: String): List<Cliente> {
         val response: HttpResponse = client.get("$supabaseUrl/rest/v1/clientes") {
@@ -95,12 +72,10 @@ class SupabaseClient {
         return response.body()
     }
 
-    suspend fun getProfileById(profileId: String): UserProfile? {
+    // Usando a classe Profile unificada
+    suspend fun getProfileById(profileId: String): Profile? { // Agora retorna Profile do model
         return try {
-            Log.d(
-                "SupabaseClient",
-                "Buscando perfil do profissional no Supabase com ID (UUID): $profileId"
-            )
+            Log.d("SupabaseClient", "Buscando perfil do profissional no Supabase com ID (UUID): $profileId")
             val response: HttpResponse = client.get("$supabaseUrl/rest/v1/profiles") {
                 parameter("select", "id, nome, photo_url, cargo")
                 parameter("id", "eq.$profileId")
@@ -108,17 +83,14 @@ class SupabaseClient {
             }
             Log.d("SupabaseData", "Raw Supabase Response (Status): ${response.status}")
 
-
             if (response.status.isSuccess()) {
                 val rawBody = response.bodyAsText()
-                Log.d("SupabaseClient", "Raw JSON Response: $rawBody")
-                val profiles: List<UserProfile> = Json.decodeFromString(rawBody)
+                Log.d("SupabaseClient", "Raw JSON Response (Profile by ID): $rawBody")
+                // Use List<Profile> para desserializar, pois a API pode retornar uma lista
+                val profiles: List<Profile> = Json.decodeFromString(rawBody)
                 return profiles.firstOrNull()
             } else {
-                Log.e(
-                    "SupabaseClient",
-                    "Erro ao buscar perfil do profissional: ${response.status} - ${response.bodyAsText()}"
-                )
+                Log.e("SupabaseClient", "Erro ao buscar perfil do profissional: ${response.status} - ${response.bodyAsText()}")
                 null
             }
         } catch (e: Exception) {
@@ -127,34 +99,32 @@ class SupabaseClient {
         }
     }
 
-
-    suspend fun getAgendamentosPorData(data: String): List<AgendamentoSupabase> {
+    suspend fun getAgendamentosPorData(data: String, profissionalId: String? = null): List<AgendamentoSupabase> {
         return try {
-            Log.d("SupabaseClient", "Buscando agendamentos no Supabase para a data: $data")
-            val response: HttpResponse =
-                client.get("$supabaseUrl/rest/v1/agendamentos") {
-                    parameter("select", "id, cliente_id, data, hora, profissional, comentario")
-                    parameter("data", "eq.$data")
+            Log.d("SupabaseClient", "Buscando agendamentos no Supabase para a data: $data e profissional: ${profissionalId ?: "todos"}")
+            val response: HttpResponse = client.get("$supabaseUrl/rest/v1/agendamentos") {
+                parameter("select", "id, cliente_id, data, hora, profissional, comentario")
+                parameter("data", "eq.$data") // Filtra pela data
+
+                if (profissionalId != null) {
+                    parameter("profissional", "eq.$profissionalId") // Filtra pelo ID do profissional
                 }
+            }
             Log.d("SupabaseClient", "Resposta do Supabase (status): ${response.status}")
 
             if (response.status.isSuccess()) {
                 val rawBody = response.bodyAsText()
-                Log.d("SupabaseClient", "Raw JSON Response: $rawBody")
+                Log.d("SupabaseClient", "Raw JSON Response (Agendamentos): $rawBody")
                 return Json.decodeFromString<List<AgendamentoSupabase>>(rawBody)
             } else {
-                Log.e(
-                    "SupabaseClient",
-                    "Erro ao buscar agendamentos por data: ${response.status} - ${response.bodyAsText()}"
-                )
+                Log.e("SupabaseClient", "Erro ao buscar agendamentos por data e/ou profissional: ${response.status} - ${response.bodyAsText()}")
                 emptyList()
             }
         } catch (e: Exception) {
-            Log.e("SupabaseClient", "Erro ao buscar agendamentos por data: ${e.message}")
+            Log.e("SupabaseClient", "Erro ao buscar agendamentos por data e/ou profissional: ${e.message}")
             emptyList()
         }
     }
-
 
     suspend fun getClientePorNome(nome: String): Cliente? {
         return try {
@@ -166,7 +136,7 @@ class SupabaseClient {
 
             if (response.status.value in 200..299) {
                 val rawBody = response.bodyAsText()
-                Log.d("SupabaseClient", "Raw JSON Response: $rawBody")
+                Log.d("SupabaseClient", "Raw JSON Response (Cliente por Nome): $rawBody")
                 val clientes = Json.decodeFromString<List<Cliente>>(rawBody)
                 return clientes.firstOrNull()
             } else {
@@ -204,17 +174,16 @@ class SupabaseClient {
         }
     }
 
-    suspend fun getProfissionais(): List<com.example.salao.Agendamento.Profile> {
+    // getProfissionais usando a classe Profile unificada
+    suspend fun getProfissionais(): List<Profile> { // Agora retorna List<Profile> do model
         return try {
             val response: HttpResponse = client.get("$supabaseUrl/rest/v1/profiles") {
-
                 parameter("select", "id,nome,cargo,photo_url")
-                parameter("cargo", "not.eq.null")
             }
             val rawBody = response.bodyAsText()
             Log.d("SupabaseClient", "Raw JSON Response (Profissionais): $rawBody")
 
-            return Json.decodeFromString<List<com.example.salao.Agendamento.Profile>>(rawBody)
+            return Json.decodeFromString<List<Profile>>(rawBody)
         } catch (e: Exception) {
             Log.e("SupabaseClient", "Erro ao obter profissionais: ${e.message}")
             return emptyList()
@@ -225,7 +194,7 @@ class SupabaseClient {
         clienteId: Int,
         dataAgendamento: String,
         horaAgendamento: String,
-        profissionalId: String,
+        profissionalId: String, // ID do profissional (UUID)
         comentario: String? = null
     ): Boolean {
         return try {
@@ -241,8 +210,12 @@ class SupabaseClient {
                 setBody(Json.encodeToString(agendamento))
                 header("Prefer", "return=minimal")
             }
+            Log.d("SupabaseClient", "Resposta ao criar agendamento (status): ${response.status}")
+            if (!response.status.isSuccess()) {
+                Log.e("SupabaseClient", "Erro detalhado ao criar agendamento: ${response.bodyAsText()}")
+            }
 
-            response.status.value in 200..299
+            response.status.isSuccess()
         } catch (e: Exception) {
             Log.e("SupabaseClient", "Erro ao criar agendamento: ${e.message}")
             return false
@@ -273,7 +246,7 @@ class SupabaseClient {
 
     suspend fun deletarAgendamentos(ids: List<Int>): Boolean {
         return try {
-            val url = URLBuilder("$supabaseUrl/rest/v1/agendamentos") // Agora URLBuilder será reconhecido
+            val url = URLBuilder("$supabaseUrl/rest/v1/agendamentos")
             ids.forEach { id ->
                 url.parameters.append("id", "eq.$id")
             }
@@ -284,7 +257,7 @@ class SupabaseClient {
             }
             Log.d("deletarAgendamentos", "Resposta da exclusão (status): ${response.status}")
             val responseBody = response.bodyAsText()
-            Log.d("SupabaseClient", "Resposta da exclusão (body): $responseBody") // Log the response body
+            Log.d("SupabaseClient", "Resposta da exclusão (body): $responseBody")
             return response.status.isSuccess()
         } catch (e: Exception) {
             Log.e("SupabaseClient", "Erro ao deletar agendamentos: ${e.message}")

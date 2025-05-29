@@ -34,6 +34,10 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+// NOVOS IMPORTS PARA AS CLASSES DE MODELO UNIFICADAS
+import com.example.salao.model.Cliente // Importando Cliente do pacote model
+import com.example.salao.model.NovoCliente // Importando NovoCliente do pacote model
+
 class CadastroCli : AppCompatActivity() {
 
     private lateinit var nomeEditText: AutoCompleteTextView
@@ -44,7 +48,8 @@ class CadastroCli : AppCompatActivity() {
     private lateinit var btnDeletarCliente: FrameLayout
     private val supabaseClient = SupabaseClient()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
-    private var listaClientes: List<SupabaseClient.Cliente> = emptyList()
+    // Agora referenciando Cliente do pacote model
+    private var listaClientes: List<Cliente> = emptyList()
     private var clienteIdParaDeletar: Int? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,19 +95,19 @@ class CadastroCli : AppCompatActivity() {
         setupNavigationIcons()
     }
 
-        private fun setupNavigationIcons() {
-            findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
-                navigateToLogin(this)
-            }
-            findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
-                navigateToAgendamento(this)
-            }
-            findViewById<ImageView>(R.id.icon_calendar)?.setOnClickListener {
-                navigateToAgenda(this)
-            }
-            findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
-
-            }
+    private fun setupNavigationIcons() {
+        findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
+            navigateToLogin(this)
+        }
+        findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
+            navigateToAgendamento(this)
+        }
+        findViewById<ImageView>(R.id.icon_calendar)?.setOnClickListener {
+            navigateToAgenda(this)
+        }
+        findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
+            // Ação para o ícone de adicionar (já está na tela de cadastro de cliente)
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -159,7 +164,7 @@ class CadastroCli : AppCompatActivity() {
             // Habilitar o botão Deletar agora que um cliente foi selecionado
             btnDeletarCliente.isEnabled = true
         } ?: run {
-            clienteIdParaDeletar = -1
+            clienteIdParaDeletar = null // Definir como null ou -1 para indicar que nenhum cliente válido está selecionado
             btnDeletarCliente.isEnabled = false
             Log.d("CadastroCli", "Nenhum cliente correspondente encontrado.")
         }
@@ -169,6 +174,7 @@ class CadastroCli : AppCompatActivity() {
     private fun buscarClientes(prefixo: String) {
         coroutineScope.launch {
             try {
+                // Agora SupabaseClient.buscarClientesPorNome retorna List<Cliente> do pacote model
                 listaClientes = supabaseClient.buscarClientesPorNome(prefixo)
                 val nomesClientes = listaClientes.map { it.nome }
                 atualizarSugestoesNome(nomesClientes)
@@ -189,7 +195,7 @@ class CadastroCli : AppCompatActivity() {
     private fun preencherCamposCliente(nomeSelecionado: String) {
         val cliente = listaClientes.find { it.nome.equals(nomeSelecionado, ignoreCase = true) }
         cliente?.let {
-            telefoneEditText.setText(it.telefone?.toString() ?: "")
+            telefoneEditText.setText(it.telefone ?: "") // Telefone já é String?
             emailEditText.setText(it.email ?: "")
             dataNascEditText.setText(formatarDataParaExibicao(it.dataNascimento))
         }
@@ -200,6 +206,8 @@ class CadastroCli : AppCompatActivity() {
         telefoneEditText.text.clear()
         emailEditText.text.clear()
         dataNascEditText.text.clear()
+        clienteIdParaDeletar = null // Limpar o ID do cliente para deletar
+        btnDeletarCliente.isEnabled = false // Desabilitar o botão deletar
     }
 
     private fun mostrarDatePickerDialog() {
@@ -229,8 +237,9 @@ class CadastroCli : AppCompatActivity() {
                 val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
                 val outputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                 val date = inputFormat.parse(dataSupabase)
-                outputFormat.format(date)
+                date?.let { outputFormat.format(it) } ?: dataSupabase // Tratar parse nulo
             } catch (e: Exception) {
+                Log.e("CadastroCli", "Erro ao formatar data para exibição: ${e.message}", e)
                 dataSupabase
             }
         } else {
@@ -244,8 +253,9 @@ class CadastroCli : AppCompatActivity() {
                 val inputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                 val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
                 val date = inputFormat.parse(dataLocal)
-                outputFormat.format(date)
+                date?.let { outputFormat.format(it) } ?: dataLocal // Tratar parse nulo
             } catch (e: Exception) {
+                Log.e("CadastroCli", "Erro ao formatar data para Supabase: ${e.message}", e)
                 dataLocal
             }
         } else {
@@ -266,10 +276,14 @@ class CadastroCli : AppCompatActivity() {
             return
         }
 
-        val novoCliente = SupabaseClient.NovoCliente(
-            telefone.toString(),
-            email.ifEmpty { null },
-            dataFormatadaSupabase.ifEmpty { null })
+        // Usando a classe NovoCliente do pacote model
+        // Ajustei o construtor para incluir 'nome' que estava faltando
+        val novoCliente = NovoCliente(
+            nome = nome, // Adicionado o nome
+            telefone = telefone.ifEmpty { null },
+            email = email.ifEmpty { null },
+            dataNascimento = dataFormatadaSupabase.ifEmpty { null }
+        )
 
         coroutineScope.launch {
             try {
