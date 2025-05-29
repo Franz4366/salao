@@ -178,7 +178,7 @@ class Agendamento : AppCompatActivity() {
             val dataAgendamento =
                 SimpleDateFormat("yyyy-MM-dd", Locale("pt", "BR")).format(selectedDate!!)
             val horaAgendamento = String.format("%02d:%02d", selectedHour, selectedMinute)
-            val nomeProfissional = selectedProfessional!!.nome
+            val profissionalIdParaAgendamento = selectedProfessional!!.id
             val observacoes = findViewById<EditText>(R.id.camp_obs).text.toString()
 
             Log.d("Agendamento", "Tentando buscar cliente com nome: $selectedClientName")
@@ -189,13 +189,11 @@ class Agendamento : AppCompatActivity() {
                     if (cliente != null) {
                         val clienteId = cliente.id
 
-                        Log.d("Agendamento", "Dados para agendamento: clienteId=$clienteId, data=$dataAgendamento, hora=$horaAgendamento, profissional=$nomeProfissional")
-
                         val sucesso = supabaseClient.criarAgendamento(
                             clienteId = clienteId,
                             dataAgendamento = dataAgendamento,
                             horaAgendamento = horaAgendamento,
-                            profissionalId = nomeProfissional,
+                            profissionalId = profissionalIdParaAgendamento,
                             comentario = observacoes
                         )
 
