@@ -27,11 +27,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-// NOVOS IMPORTS PARA AS CLASSES DE MODELO UNIFICADAS
-import com.example.salao.model.Profile // Agora importando do pacote model!
-import com.example.salao.model.Cliente // Para o método getClientePorId
-import com.example.salao.model.AgendamentoSupabase // Para os agendamentos
+import com.example.salao.model.Profile
 
 class LoginProfissional : AppCompatActivity() {
 
@@ -89,11 +85,6 @@ class LoginProfissional : AppCompatActivity() {
                         val dateTimeFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
                         val parsedDate: Date = dateTimeFormatter.parse(fullDateTime)!!
 
-                        // Estas duas linhas são redundantes se você já tem os componentes separados
-                        // val datePart = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(parsedDate)
-                        // val timePart = SimpleDateFormat("HH:mm", Locale.getDefault()).format(parsedDate)
-
-
                         listaAgendamentoItems.add(
                             AgendamentoItem(
                                 id = agendamentoSupabase.id,
@@ -129,7 +120,6 @@ class LoginProfissional : AppCompatActivity() {
         coroutineScope.cancel()
     }
 
-    // Método para buscar perfil do usuário, agora usando a classe Profile unificada
     private suspend fun buscarPerfilDoUsuario(userId: String) {
         try {
             val response: HttpResponse = supabaseClient.client.get("${supabaseClient.supabaseUrl}/rest/v1/profiles") {
@@ -160,7 +150,6 @@ class LoginProfissional : AppCompatActivity() {
 
     private fun setupNavigationIcons() {
         findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
-            // Ação para o ícone home (já está na tela home)
         }
         findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
             navigateToAgendamento(this)

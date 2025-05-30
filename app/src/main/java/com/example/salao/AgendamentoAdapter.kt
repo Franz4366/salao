@@ -80,7 +80,6 @@ class AgendamentoAdapter(private var agendamentos: MutableList<AgendamentoItem>)
             holder.tvDataHora.text = "Erro na Data/Hora" // Fallback genérico para erro
             Log.e("AgendamentoAdapter", "Erro ao formatar data/hora: ${e.message}")
         }
-        // ----------------------------------------------------
 
         holder.checkboxSelecionar.isChecked = itensSelecionados.contains(position)
 

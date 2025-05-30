@@ -35,13 +35,14 @@ import android.graphics.Paint
 import android.view.LayoutInflater
 import android.widget.EditText
 import android.widget.Toast
-import com.example.salaa.DiaSemanaAdapter
-import com.example.salaa.OnDateClickListener
+import com.example.salaa.DiaSemanaAdapter // Importando o adaptador já existente
+import com.example.salaa.OnDateClickListener // Importando o listener já existente
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToLogin
 import com.squareup.picasso.Transformation
 import com.example.salao.model.Profile
+// REMOVIDOS: AgendamentoSupabase, Cliente, kotlinx.coroutines.coroutineScope (eram desnecessários aqui)
 
 class Agendamento : AppCompatActivity() {
 
@@ -60,12 +61,11 @@ class Agendamento : AppCompatActivity() {
     private lateinit var containerProfissionais: LinearLayout
     private var selectedDate: Date? = null
     private var selectedClientName: String? = null
-    private var selectedProfessional: Profile? = null // Usa a Profile importada
+    private var selectedProfessional: Profile? = null
     private var selectedHour: Int? = null
     private var selectedMinute: Int? = null
     private var selectedProfessionalView: View? = null
 
-    // Variáveis para a pesquisa de clientes
     private val supabaseClient = SupabaseClient()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
 
@@ -73,8 +73,7 @@ class Agendamento : AppCompatActivity() {
         coroutineScope.launch {
             try {
                 val clientes = supabaseClient.buscarClientesPorNome(prefixo)
-                val nomesClientes =
-                    clientes.map { it.nome } // Extrai apenas os nomes da lista de clientes
+                val nomesClientes = clientes.map { it.nome }
                 atualizarSugestoes(nomesClientes)
             } catch (e: Exception) {
                 Log.e("Agendamento", "Erro ao buscar clientes: ${e.message}")
@@ -83,8 +82,7 @@ class Agendamento : AppCompatActivity() {
     }
 
     private fun atualizarSugestoes(nomes: List<String>) {
-        val adapter =
-            ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, nomes)
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, nomes)
         pesquisa.setAdapter(adapter)
         adapter.notifyDataSetChanged()
     }
@@ -108,18 +106,18 @@ class Agendamento : AppCompatActivity() {
         btAgendar = findViewById(R.id.bt_agendar)
         iconHome = findViewById(R.id.icon_home)
         iconCalendar = findViewById(R.id.icon_calendar)
-        iconAgendar = findViewById(R.id.icon_agendar)
+        iconAgendar = findViewById(R.id.icon_agendar) // Use o ID correto do XML
         iconAdd = findViewById(R.id.icon_add)
         iconUser = findViewById(R.id.icon_user)
         containerProfissionais = findViewById(R.id.container_profissionais)
 
+        // 1. Inicializa selectedDate com a data atual ao iniciar a tela.
+        selectedDate = Calendar.getInstance().time
+
         pesquisa.setOnItemClickListener { adapterView, _, position, _ ->
             this@Agendamento.selectedClientName = adapterView.getItemAtPosition(position) as String
             Log.d("Agendamento", "Cliente selecionado (OnItemClickListener): $selectedClientName")
-
-            Log.d("Agendamento", "Cliente selecionado: $selectedClientName")
         }
-
         cxHora.text = "8:00"
         selectedHour = 8
         selectedMinute = 0
@@ -127,29 +125,15 @@ class Agendamento : AppCompatActivity() {
         cxHora.setOnClickListener {
             showTimePickerDialog()
         }
-
         pesquisa.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(
-                s: CharSequence?,
-                start: Int,
-                count: Int,
-                after: Int
-            ) {
-            }
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-            }
-
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
                 val textoDigitado = s.toString()
                 if (textoDigitado.length >= 2) {
                     buscarClientes(textoDigitado)
                 } else {
-                    val adapter = ArrayAdapter<String>(
-                        this@Agendamento,
-                        android.R.layout.simple_dropdown_item_1line,
-                        emptyList()
-                    )
+                    val adapter = ArrayAdapter<String>(this@Agendamento, android.R.layout.simple_dropdown_item_1line, emptyList())
                     pesquisa.setAdapter(adapter)
                 }
             }
@@ -160,15 +144,32 @@ class Agendamento : AppCompatActivity() {
         btAgendar.setOnClickListener {
             salvarAgendamento()
         }
+
+        // 2. Configura o LayoutManager para o RecyclerView do calendário.
+        calendarRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+
+        // 3. Atualiza o calendário e rola para o dia atual.
+        calendarRecyclerView.post {
+            atualizarCalendario()
+            scrollToCurrentDate()
+        }
     }
+
+    override fun onResume() {
+        super.onResume()
+        esconderBarrasDoSistema(this)
+        calendarRecyclerView.post {
+            scrollToCurrentDate()
+        }
+    }
+
     private fun exibirMensagem(mensagem: String) {
         Toast.makeText(this, mensagem, Toast.LENGTH_LONG).show()
     }
 
     private fun salvarAgendamento() {
         if (selectedDate != null && selectedClientName != null && selectedHour != null && selectedProfessional != null) {
-            val dataAgendamento =
-                SimpleDateFormat("yyyy-MM-dd", Locale("pt", "BR")).format(selectedDate!!)
+            val dataAgendamento = SimpleDateFormat("yyyy-MM-dd", Locale("pt", "BR")).format(selectedDate!!)
             val horaAgendamento = String.format("%02d:%02d", selectedHour, selectedMinute)
             val profissionalIdParaAgendamento = selectedProfessional!!.id
             val observacoes = findViewById<EditText>(R.id.camp_obs).text.toString()
@@ -207,17 +208,23 @@ class Agendamento : AppCompatActivity() {
             exibirMensagem("Por favor, selecione a data, o cliente, a hora e o profissional.")
         }
     }
+
     private fun limparCamposAgendamento() {
-        selectedDate = null
+        selectedDate = Calendar.getInstance().time // Resetar para o dia atual
         selectedClientName = null
         selectedProfessional = null
-        selectedHour = null
-        selectedMinute = null
+        selectedHour = 8
+        selectedMinute = 0
         pesquisa.text.clear()
-        cxHora.text = getString(R.string.selecione_a_hora)
+        cxHora.text = "8:00"
         findViewById<EditText>(R.id.camp_obs)?.text?.clear()
         selectedProfessionalView?.setBackgroundResource(android.R.color.transparent)
         selectedProfessionalView = null
+
+        atualizarCalendario()
+        calendarRecyclerView.post {
+            scrollToCurrentDate()
+        }
     }
 
     private fun carregarProfissionais() {
@@ -232,7 +239,6 @@ class Agendamento : AppCompatActivity() {
                         containerProfissionais.addView(profissionalView)
                     }
                 } else {
-                    // Exibe uma mensagem caso não haja profissionais cadastrados
                     val mensagemTextView = TextView(this@Agendamento)
                     mensagemTextView.text = "Nenhum profissional cadastrado."
                     mensagemTextView.layoutParams = LinearLayout.LayoutParams(
@@ -266,7 +272,7 @@ class Agendamento : AppCompatActivity() {
         if (profissional.fotoUrl != null) {
             Picasso.get()
                 .load(profissional.fotoUrl)
-                .transform(CircleTransform()) // Aplica a transformação para deixar a imagem circular
+                .transform(CircleTransform())
                 .placeholder(R.drawable.ellipse_14)
                 .error(R.drawable.ellipse_14)
                 .into(fotoProfissional)
@@ -274,12 +280,8 @@ class Agendamento : AppCompatActivity() {
             fotoProfissional.setImageResource(R.drawable.ellipse_14)
         }
         view.setOnClickListener {
-            // Desmarca o profissional anteriormente selecionado (se houver)
-            selectedProfessionalView?.setBackgroundResource(android.R.color.transparent) // Remove qualquer background customizado
-
-            // Marca o profissional atualmente selecionado
+            selectedProfessionalView?.setBackgroundResource(android.R.color.transparent)
             view.setBackgroundResource(R.drawable.background_profissional_selecionado)
-
             selectedProfessional = profissional
             selectedProfessionalView = view
             Log.d("Agendamento", "Profissional selecionado: ${profissional.nome}")
@@ -287,7 +289,6 @@ class Agendamento : AppCompatActivity() {
         return view
     }
 
-    // Classe para transformar a imagem em um círculo
     class CircleTransform : Transformation {
         override fun transform(source: Bitmap): Bitmap {
             val size = Math.min(source.width, source.height)
@@ -299,7 +300,6 @@ class Agendamento : AppCompatActivity() {
             if (squaredBitmap != source) {
                 source.recycle()
             }
-
             val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
             val paint = Paint()
@@ -317,7 +317,6 @@ class Agendamento : AppCompatActivity() {
             squaredBitmap.recycle()
             return bitmap
         }
-
         override fun key(): String {
             return "circle"
         }
@@ -343,13 +342,12 @@ class Agendamento : AppCompatActivity() {
         timePickerDialog.show()
     }
 
-
     private fun setupNavigationIcons() {
         findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
             navigateToLogin(this)
         }
         findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
-
+            // Já está na tela de Agendamento, pode optar por não fazer nada.
         }
         findViewById<ImageView>(R.id.icon_calendar)?.setOnClickListener {
             navigateToAgenda(this)
@@ -360,25 +358,37 @@ class Agendamento : AppCompatActivity() {
 
         esconderBarrasDoSistema(this)
 
-        calendarRecyclerView.layoutManager =
-            LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-
-        atualizarCalendario()
-
         val btnAnterior: ImageView = findViewById(R.id.seta_anterior)
         val btnProximo: ImageView = findViewById(R.id.seta_proximo)
 
         btnAnterior.setOnClickListener {
             calendar.add(Calendar.MONTH, -1)
-            atualizarCalendario()
+            // Ao mudar o mês, queremos que o primeiro dia do NOVO MÊS seja selecionado.
+            val newMonthFirstDay = Calendar.getInstance().apply {
+                time = calendar.time
+                set(Calendar.DAY_OF_MONTH, 1)
+            }.time
+            selectedDate = newMonthFirstDay // Define o selectedDate para o primeiro dia do novo mês
+            atualizarCalendario() // Recria o adaptador com a nova selectedDate
+            calendarRecyclerView.post {
+                scrollToCurrentDate() // Rola para o novo selectedDate (primeiro dia do mês)
+            }
         }
 
         btnProximo.setOnClickListener {
             calendar.add(Calendar.MONTH, 1)
-            atualizarCalendario()
+            // Ao mudar o mês, queremos que o primeiro dia do NOVO MÊS seja selecionado.
+            val newMonthFirstDay = Calendar.getInstance().apply {
+                time = calendar.time
+                set(Calendar.DAY_OF_MONTH, 1)
+            }.time
+            selectedDate = newMonthFirstDay // Define o selectedDate para o primeiro dia do novo mês
+            atualizarCalendario() // Recria o adaptador com a nova selectedDate
+            calendarRecyclerView.post {
+                scrollToCurrentDate() // Rola para o novo selectedDate (primeiro dia do mês)
+            }
         }
     }
-
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
@@ -388,19 +398,100 @@ class Agendamento : AppCompatActivity() {
     }
 
     private fun atualizarCalendario() {
-        val dias = gerarDiasDoMes(calendar) // Esta função retorna List<Date>
+        val dias = gerarDiasDoMes(calendar)
 
         tvMes.text = SimpleDateFormat("MMMM", Locale("pt", "BR"))
             .format(calendar.time)
             .replaceFirstChar { it.uppercase() }
 
-        val adapter = DiaSemanaAdapter(dias, calendar) // Passa a lista de Date diretamente
+        val adapter = DiaSemanaAdapter(dias, calendar)
         adapter.setOnDateClickListener(object : OnDateClickListener {
             override fun onDateClick(date: Date) {
-                selectedDate = date
+                // Ao clicar, atualizamos a data selecionada e informamos o adaptador para redesenhar.
+                val oldSelectedPosition = adapter.selectedPosition // Armazena a posição selecionada anteriormente
+                selectedDate = date // Atualiza a data selecionada
+
+                // Encontra a posição da data clicada
+                val clickedIndex = dias.indexOfFirst {
+                    val cal1 = Calendar.getInstance().apply { time = it }
+                    val cal2 = Calendar.getInstance().apply { time = date }
+                    cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+                            cal1.get(Calendar.MONTH) == cal2.get(Calendar.MONTH) &&
+                            cal1.get(Calendar.DAY_OF_MONTH) == cal2.get(Calendar.DAY_OF_MONTH)
+                }
+
+                if (clickedIndex != -1) {
+                    // Primeiro, desmarca a seleção antiga se houver e for diferente da nova
+                    if (oldSelectedPosition != null && oldSelectedPosition != clickedIndex) {
+                        adapter.selectedPosition = null // Desmarcar a posição antiga no adaptador
+                        adapter.notifyItemChanged(oldSelectedPosition) // Notifica o item antigo para redesenhar
+                    }
+                    adapter.selectedPosition = clickedIndex // Define a nova posição selecionada
+                    adapter.notifyItemChanged(clickedIndex) // Notifica o novo item para ser desenhado como selecionado
+                }
                 Log.d("Agendamento", "Data selecionada: $date")
+                // REMOVIDO: A chamada a buscarAgendamentosParaData(date) não pertence a esta Activity.
             }
         })
         calendarRecyclerView.adapter = adapter
+
+        // Lógica de SELEÇÃO INICIAL ao carregar ou atualizar o calendário
+        val targetDateForInitialSelection = selectedDate // Usa a data que está atualmente em selectedDate
+
+        if (targetDateForInitialSelection != null) {
+            val indexToSetInitially = dias.indexOfFirst {
+                val tempCal = Calendar.getInstance().apply { time = it }
+                val targetCal = Calendar.getInstance().apply { time = targetDateForInitialSelection }
+                tempCal.get(Calendar.YEAR) == targetCal.get(Calendar.YEAR) &&
+                        tempCal.get(Calendar.MONTH) == targetCal.get(Calendar.MONTH) &&
+                        tempCal.get(Calendar.DAY_OF_MONTH) == targetCal.get(Calendar.DAY_OF_MONTH)
+            }
+
+            if (indexToSetInitially != -1) {
+                adapter.selectedPosition = indexToSetInitially
+                adapter.notifyDataSetChanged() // Garante que o adaptador redesenhe com a seleção inicial
+            } else {
+                adapter.selectedPosition = null
+                adapter.notifyDataSetChanged()
+            }
+        } else {
+            // Se selectedDate for nulo (após uma limpeza, por exemplo), deseleciona tudo.
+            adapter.selectedPosition = null
+            adapter.notifyDataSetChanged()
+        }
+    }
+
+    private fun scrollToCurrentDate() {
+        val layoutManager = calendarRecyclerView.layoutManager as LinearLayoutManager
+        val dias = gerarDiasDoMes(calendar)
+
+        val targetDate = selectedDate ?: Calendar.getInstance().time
+
+        val indexToScroll = dias.indexOfFirst {
+            val cal1 = Calendar.getInstance().apply { time = it }
+            val cal2 = Calendar.getInstance().apply { time = targetDate }
+            cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+                    cal1.get(Calendar.MONTH) == cal2.get(Calendar.MONTH) &&
+                    cal1.get(Calendar.DAY_OF_MONTH) == cal2.get(Calendar.DAY_OF_MONTH)
+        }
+
+        if (indexToScroll != -1) {
+            calendarRecyclerView.post {
+                val itemView = layoutManager.findViewByPosition(indexToScroll)
+                if (itemView != null) {
+                    val itemWidth = itemView.width
+                    val recyclerViewWidth = calendarRecyclerView.width
+                    val offset = (recyclerViewWidth / 2) - (itemWidth / 2)
+
+                    layoutManager.scrollToPositionWithOffset(indexToScroll, offset)
+                } else {
+                    // Fallback se o item não está visível (menos comum com a lógica de post)
+                    val itemWidthFallback = resources.getDimensionPixelSize(R.dimen.calendar_item_width)
+                    val recyclerViewWidth = calendarRecyclerView.width
+                    val offsetFallback = (recyclerViewWidth / 2) - (itemWidthFallback / 2)
+                    layoutManager.scrollToPositionWithOffset(indexToScroll, offsetFallback)
+                }
+            }
+        }
     }
 }

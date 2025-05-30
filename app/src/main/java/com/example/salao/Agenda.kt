@@ -43,8 +43,6 @@ class Agenda : AppCompatActivity() {
     private var selectedDate: Date? = null
     private lateinit var btnExcluir: FrameLayout
     private val agendamentosSelecionados = mutableListOf<AgendamentoItem>()
-    private val formatoBancoDeDados = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    private val formatoExibicao = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,7 +79,6 @@ class Agenda : AppCompatActivity() {
         btnProximo.setOnClickListener {
             calendar.add(Calendar.MONTH, 1)
             atualizarCalendario()
-            // Mesmo lógica do anterior
             selectedDate = calendar.time
             buscarAgendamentosParaData(selectedDate!!)
         }
@@ -95,7 +92,6 @@ class Agenda : AppCompatActivity() {
             navigateToAgendamento(this)
         }
         findViewById<ImageView>(R.id.icon_calendar)?.setOnClickListener {
-            // Já está na tela de Agenda
         }
         findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
             navigateToCadastroCliente(this)
@@ -129,8 +125,6 @@ class Agenda : AppCompatActivity() {
         val hoje = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
         }
         var initialScrollPosition = 0
         var initialSelectedData: Date? = null
@@ -151,8 +145,6 @@ class Agenda : AppCompatActivity() {
                 set(Calendar.DAY_OF_MONTH, 1)
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
             }.time
 
             val indexPrimeiroDiaMesPrincipal = dias.indexOfFirst {
@@ -218,7 +210,6 @@ class Agenda : AppCompatActivity() {
                 if (resultado) {
                     Log.d("Agenda", "Agendamentos excluídos com sucesso!")
                     mostrarToast("Agendamentos excluídos")
-                    // Após a exclusão, recarrega os agendamentos da data atualmente selecionada
                     selectedDate?.let { buscarAgendamentosParaData(it) }
                     agendamentosSelecionados.clear()
                     btnExcluir.isEnabled = false
