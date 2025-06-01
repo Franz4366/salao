@@ -30,7 +30,6 @@ android {
     } else {
         println("WARNING: local.properties file not found. Make sure it exists in the project root.")
     }
-    // --- FIM DO NOVO BLOCO ---
 
     buildTypes {
         release {
@@ -60,7 +59,7 @@ android {
     }
     buildFeatures {
         compose = true
-        buildConfig = true // Garante que BuildConfig seja gerado
+        buildConfig = true
     }
 
     packaging {
@@ -78,6 +77,7 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.play.services.auth)
+    implementation(libs.androidx.activity)
 
     //Testes
     testImplementation(libs.junit)
@@ -94,4 +94,7 @@ dependencies {
 
     implementation(libs.coil.compose)
     implementation (libs.picasso)
+    implementation (libs.androidx.cardview)
+    implementation (libs.androidx.startup.runtime)
+    implementation (libs.androidx.profileinstaller)
 }

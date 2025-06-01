@@ -213,6 +213,7 @@ class Agenda : AppCompatActivity() {
                     selectedDate?.let { buscarAgendamentosParaData(it) }
                     agendamentosSelecionados.clear()
                     btnExcluir.isEnabled = false
+                    atualizarEstadoBotaoExcluir()
                 } else {
                     Log.e("Agenda", "Erro ao excluir agendamentos.")
                     mostrarToast("Erro ao excluir agendamentos")

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    tools:context=".DetalhesAgendamentoActivity">
+
+    <LinearLayout
+        android:id="@+id/layout_para_print"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Agendamento Confirmado!"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:layout_marginBottom="24dp"
+            android:gravity="center"
+            android:paddingHorizontal="16dp" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="8dp"
+            android:layout_marginBottom="24dp"
+            android:layout_marginHorizontal="8dp"
+            app:cardBackgroundColor="@color/white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cliente:"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/grey_dark"
+                    android:layout_marginBottom="4dp"/>
+                <TextView
+                    android:id="@+id/tv_detalhe_cliente"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="20sp"
+                    android:textColor="@color/black"
+                    android:layout_marginBottom="16dp"
+                    tools:text="Nome do Cliente" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Data e Hora:"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/grey_dark"
+                    android:layout_marginBottom="4dp"/>
+                <TextView
+                    android:id="@+id/tv_detalhe_data_hora"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="20sp"
+                    android:textColor="@color/black"
+                    android:layout_marginBottom="16dp"
+                    tools:text="25/12/2024 às 10:00" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Profissional:"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/grey_dark"
+                    android:layout_marginBottom="4dp"/>
+                <TextView
+                    android:id="@+id/tv_detalhe_profissional"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="20sp"
+                    android:textColor="@color/black"
+                    android:layout_marginBottom="16dp"
+                    tools:text="Nome do Profissional" />
+
+                <TextView
+                    android:id="@+id/label_observacao"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Observação:"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/grey_dark"
+                    android:layout_marginBottom="4dp"
+                    android:visibility="gone" />
+                <TextView
+                    android:id="@+id/tv_detalhe_observacao"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="18sp"
+                    android:textColor="@color/black"
+                    android:layout_marginBottom="16dp"
+                    android:visibility="gone"
+                    tools:text="Observação do Agendamento" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_compartilhar_print"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Compartilhar Agendamento"
+            android:paddingVertical="14dp"
+            android:textSize="18sp"
+            app:cornerRadius="8dp"
+            android:layout_marginHorizontal="24dp"
+            android:layout_marginTop="16dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_voltar_agenda"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Voltar para Agenda"
+            android:textColor="@color/grey_dark"
+            android:paddingVertical="14dp"
+            android:textSize="16sp"
+            app:cornerRadius="8dp"
+            android:layout_marginHorizontal="24dp"
+            android:layout_marginTop="8dp"/>
+
+    </LinearLayout>
+</ScrollView>

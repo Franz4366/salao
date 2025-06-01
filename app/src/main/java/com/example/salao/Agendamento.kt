@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.salao.network.SupabaseClient
 import com.example.salao.utils.esconderBarrasDoSistema
 import android.app.TimePickerDialog
+import android.content.Intent
 import java.util.*
 import android.text.Editable
 import android.text.TextWatcher
@@ -42,7 +43,6 @@ import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCad
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToLogin
 import com.squareup.picasso.Transformation
 import com.example.salao.model.Profile
-// REMOVIDOS: AgendamentoSupabase, Cliente, kotlinx.coroutines.coroutineScope (eram desnecessários aqui)
 
 class Agendamento : AppCompatActivity() {
 
@@ -190,9 +190,21 @@ class Agendamento : AppCompatActivity() {
                             comentario = observacoes
                         )
 
+                        Log.d("Agendamento", "Resultado de criarAgendamento: $sucesso")
+
+
                         if (sucesso) {
-                            exibirMensagem("Agendamento realizado com sucesso!")
-                            limparCamposAgendamento()
+                            Log.d("Agendamento", "Agendamento criado com sucesso! Iniciando DetalhesAgendamentoActivity.")
+
+                            val intent = Intent(this@Agendamento, DetalhesAgendamentoActivity::class.java).apply {
+                                putExtra("clienteNome", cliente.nome)
+                                putExtra("data", dataAgendamento)
+                                putExtra("hora", horaAgendamento)
+                                putExtra("profissionalNome", selectedProfessional!!.nome)
+                                putExtra("comentario", observacoes)
+                            }
+                            startActivity(intent)
+                            finish()
                         } else {
                             exibirMensagem("Erro ao realizar o agendamento.")
                         }
@@ -210,7 +222,7 @@ class Agendamento : AppCompatActivity() {
     }
 
     private fun limparCamposAgendamento() {
-        selectedDate = Calendar.getInstance().time // Resetar para o dia atual
+        selectedDate = Calendar.getInstance().time
         selectedClientName = null
         selectedProfessional = null
         selectedHour = 8
