@@ -1,5 +1,6 @@
 package com.example.salao
 
+import android.annotation.SuppressLint
 import android.content.Context
 import com.example.salao.utils.gerarDiasDoMes
 import android.os.Bundle
@@ -31,7 +32,7 @@ import com.example.salao.model.AgendamentoSupabase
 import com.example.salao.model.Cliente
 import com.example.salao.model.Profile
 
-class Agenda : AppCompatActivity() {
+class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
 
     private lateinit var calendarRecyclerView: RecyclerView
     private lateinit var tvMes: TextView
@@ -59,13 +60,12 @@ class Agenda : AppCompatActivity() {
         calendarRecyclerView.layoutManager =
             LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
 
-        calendar = Calendar.getInstance() // Inicializa o calendário para a data atual
+        calendar = Calendar.getInstance()
 
         setupNavigationIcons()
         setupAgendamentosList()
         setupExcluirButton()
 
-        // Garante que o calendário e os agendamentos sejam carregados na inicialização
         atualizarCalendario()
 
         val btnAnterior: ImageView = findViewById(R.id.seta_anterior)
@@ -105,6 +105,7 @@ class Agenda : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun atualizarCalendario() {
         val dias = gerarDiasDoMes(calendar)
 
@@ -115,9 +116,9 @@ class Agenda : AppCompatActivity() {
         val adapter = DiaSemanaAdapter(dias, calendar)
         adapter.setOnDateClickListener(object : OnDateClickListener {
             override fun onDateClick(date: Date) {
-                selectedDate = date // Atualiza a data selecionada
+                selectedDate = date
                 Log.d("Agenda", "Data selecionada no calendário: $date")
-                buscarAgendamentosParaData(date) // Carrega agendamentos para a nova data selecionada
+                buscarAgendamentosParaData(date)
             }
         })
         calendarRecyclerView.adapter = adapter
@@ -174,18 +175,9 @@ class Agenda : AppCompatActivity() {
     }
     private fun setupAgendamentosList() {
         listaAgendamentosRecyclerView.layoutManager = LinearLayoutManager(this)
-        agendamentoAdapter = AgendamentoAdapter(mutableListOf())
+        agendamentoAdapter = AgendamentoAdapter(mutableListOf(), this)
         listaAgendamentosRecyclerView.adapter = agendamentoAdapter
 
-        agendamentoAdapter.setOnItemSelecionadoListener { position, isChecked ->
-            val agendamento = agendamentoAdapter.listaAgendamentos[position]
-            if (isChecked) {
-                agendamentosSelecionados.add(agendamento)
-            } else {
-                agendamentosSelecionados.remove(agendamento)
-            }
-            atualizarEstadoBotaoExcluir()
-        }
     }
 
     private fun atualizarEstadoBotaoExcluir() {
@@ -197,6 +189,14 @@ class Agenda : AppCompatActivity() {
         btnExcluir.setOnClickListener {
             Log.d("Agenda", "Botão Excluir clicado!")
             excluirAgendamentosSelecionados()
+        }
+    }
+
+    override fun onAgendamentoClick(agendamento: AgendamentoItem) {
+        if (agendamentosSelecionados.contains(agendamento)) {
+            agendamentosSelecionados.remove(agendamento)
+        } else {
+            agendamentosSelecionados.add(agendamento)
         }
     }
 
@@ -229,7 +229,6 @@ class Agenda : AppCompatActivity() {
         coroutineScope.launch {
             val listaAgendamentoItems = mutableListOf<AgendamentoItem>()
             try {
-                // Formata a data recebida para o formato esperado pelo Supabase
                 val dataFormatadaParaSupabase = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(data)
 
                 val agendamentosSupabase: List<AgendamentoSupabase> = supabaseClient.getAgendamentosPorData(dataFormatadaParaSupabase)

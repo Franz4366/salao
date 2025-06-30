@@ -8,7 +8,6 @@
     <string name="seg">Seg</string>
     <string name="_12">12</string>
     <string name="oi">Oi</string>
-    <string name="alexandra"></string>
     <string name="hoje_o_aniv">Hoje é o aniversario de ...</string>
     <string name="enviar">Enviar mensagem</string>
     <string name="sua_agenda">Sua Agenda</string>
@@ -33,5 +32,9 @@
     <string name="nome_do_profissional">Nome do Profissional</string>
     <string name="digite_suas_observacoes_aqui">Digite suas observações aqui</string>
     <string name="Ecluir">Excluir</string>
+    <string name="Tirar_Print">Compartilhar</string>
+    <string name="hh_mm">HH:MM</string>
+    <string name="alexandra" />
+
 
 </resources>

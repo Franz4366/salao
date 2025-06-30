@@ -47,7 +47,11 @@ class LoginProfissional : AppCompatActivity() {
         nomeProfissionalTextView = findViewById(R.id.nome_profissional)
         recyclerView = findViewById(R.id.lista_agendamentos_recycler_view)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        agendamentoAdapter = AgendamentoAdapter(mutableListOf())
+        agendamentoAdapter = AgendamentoAdapter(mutableListOf(), object : OnAgendamentoClickListener {
+            override fun onAgendamentoClick(agendamentoItem: AgendamentoItem) {
+            }
+
+        })
         recyclerView.adapter = agendamentoAdapter
 
         val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
@@ -55,7 +59,7 @@ class LoginProfissional : AppCompatActivity() {
 
         if (loggedInUserId != null) {
             coroutineScope.launch {
-                val listaAgendamentoItems = mutableListOf<AgendamentoItem>() // Alterado para 'val' pois a lista é mutável internamente
+                val listaAgendamentoItems = mutableListOf<AgendamentoItem>()
                 try {
                     buscarPerfilDoUsuario(loggedInUserId!!)
 

@@ -20,7 +20,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import com.example.salao.utils.esconderBarrasDoSistema // Certifique-se de que este import está correto
+import com.example.salao.utils.esconderBarrasDoSistema
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException

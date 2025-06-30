@@ -1,38 +1,24 @@
 package com.example.salao
 
-import android.util.Log // Importe Log para depuração
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CheckBox
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import java.text.SimpleDateFormat // Importe SimpleDateFormat
-import java.util.Date // Importe Date
-import java.util.Locale // Importe Locale
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-class AgendamentoAdapter(private var agendamentos: MutableList<AgendamentoItem>) :
-    RecyclerView.Adapter<AgendamentoAdapter.AgendamentoViewHolder>() {
+interface OnAgendamentoClickListener {
+    fun onAgendamentoClick(agendamento: AgendamentoItem)
+}
 
-    private val itensSelecionados = mutableSetOf<Int>()
-    private var onItemSelecionadoListener: ((Int, Boolean) -> Unit)? = null
+class AgendamentoAdapter(
+    private var agendamentos: MutableList<AgendamentoItem>,
+    private val clickListener: OnAgendamentoClickListener
+) : RecyclerView.Adapter<AgendamentoAdapter.AgendamentoViewHolder>() {
 
-    fun setOnItemSelecionadoListener(listener: (Int, Boolean) -> Unit) {
-        this.onItemSelecionadoListener = listener
-    }
-
-    fun getItensSelecionados(): List<AgendamentoItem> {
-        return itensSelecionados.map { agendamentos[it] }.toList()
-    }
-
-    fun removerItens(indices: List<Int>) {
-        val sortedIndices = indices.sortedDescending()
-        sortedIndices.forEach {
-            agendamentos.removeAt(it)
-        }
-        itensSelecionados.clear()
-        notifyDataSetChanged()
-    }
 
     val listaAgendamentos: List<AgendamentoItem>
         get() = agendamentos
@@ -42,7 +28,6 @@ class AgendamentoAdapter(private var agendamentos: MutableList<AgendamentoItem>)
         val tvDataHora: TextView = itemView.findViewById(R.id.tv_data_hora)
         val tvProfissional: TextView = itemView.findViewById(R.id.tv_profissional)
         val tvObservacao: TextView = itemView.findViewById(R.id.tv_observacao)
-        val checkboxSelecionar: CheckBox = itemView.findViewById(R.id.checkbox_selecionar)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AgendamentoViewHolder {
@@ -58,38 +43,25 @@ class AgendamentoAdapter(private var agendamentos: MutableList<AgendamentoItem>)
         holder.tvObservacao.text = agendamento.comentario ?: ""
 
         try {
-            val dataOriginalString = agendamento.data
             val horaOriginalString = agendamento.hora
+            val inputTimeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+            val outputTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val parsedTime: Date? = inputTimeFormat.parse(horaOriginalString)
 
-            // Formato de entrada da data
-            val inputDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            // Formato de saída da data
-            val outputDateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
-
-            val parsedDate: Date? = inputDateFormat.parse(dataOriginalString)
-
-            if (parsedDate != null) {
-                val dataFormatada = outputDateFormat.format(parsedDate)
-                holder.tvDataHora.text = "$dataFormatada ${agendamento.hora}" // Concatena a data formatada com a hora
+            if (parsedTime != null) {
+                val horaFormatada = outputTimeFormat.format(parsedTime)
+                holder.tvDataHora.text = horaFormatada
             } else {
-                holder.tvDataHora.text = "Data Inválida ${agendamento.hora}" // Fallback para data nula
-                Log.e("AgendamentoAdapter", "Falha ao parsear a data: $dataOriginalString")
+                holder.tvDataHora.text = horaOriginalString
+                Log.e("AgendamentoAdapter", "Falha ao parsear a hora: $horaOriginalString. Exibindo original.")
             }
         } catch (e: Exception) {
-            // Trate exceções de parsing se a data não estiver no formato esperado
-            holder.tvDataHora.text = "Erro na Data/Hora" // Fallback genérico para erro
-            Log.e("AgendamentoAdapter", "Erro ao formatar data/hora: ${e.message}")
+            holder.tvDataHora.text = agendamento.hora
+            Log.e("AgendamentoAdapter", "Erro ao formatar hora '${agendamento.hora}': ${e.message}. Exibindo original.")
         }
 
-        holder.checkboxSelecionar.isChecked = itensSelecionados.contains(position)
-
-        holder.checkboxSelecionar.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                itensSelecionados.add(position)
-            } else {
-                itensSelecionados.remove(position)
-            }
-            onItemSelecionadoListener?.invoke(position, isChecked)
+        holder.itemView.setOnClickListener {
+            clickListener.onAgendamentoClick(agendamento)
         }
     }
 
@@ -98,10 +70,10 @@ class AgendamentoAdapter(private var agendamentos: MutableList<AgendamentoItem>)
     fun atualizarLista(novaLista: List<AgendamentoItem>) {
         agendamentos.clear()
         agendamentos.addAll(novaLista)
-        itensSelecionados.clear()
         notifyDataSetChanged()
     }
 }
+
 data class AgendamentoItem(
     val id: Int? = null,
     val clienteNome: String,

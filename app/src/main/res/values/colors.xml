@@ -4,9 +4,11 @@
     <color name="white">#FFFFFFFF</color>
     <color name="brown">#400E0E</color>
     <color name="pink">#A5F497C5</color>
+    <color name="pink_white">#FBBEDC</color>
     <color name="orange">#FF5B5B</color>
     <color name="grey">#E6F2EEEE</color>
     <color name="green">#50CE50</color>
     <color name="red">#FF0000</color>
     <color name="grey_dark">#FF808080</color>
+    <color name="blue">#6767ED</color>
 </resources>

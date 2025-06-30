@@ -44,16 +44,15 @@ data class AgendamentoSupabase(
     @SerialName("cliente_id") val clienteId: Int,
     @SerialName("data") val dataAgendamento: String,
     @SerialName("hora") val horaAgendamento: String,
-    @SerialName("profissional") val profissionalId: String, // Mantido como String para UUID
+    @SerialName("profissional") val profissionalId: String,
     val comentario: String? = null
 )
 
 // Modelo de Perfil (Unificado - vamos usar este no lugar de UserProfile e Profile)
-// Se a sua tabela "profiles" no Supabase tem esses campos, esta é a versão que deve ser usada.
 @Serializable
 data class Profile(
     val id: String,
     @SerialName("nome") val nome: String,
-    @SerialName("cargo") val cargo: String? = null, // Cargo pode ser nulo em alguns casos
-    @SerialName("photo_url") val fotoUrl: String? = null // fotoUrl pode ser nulo
+    @SerialName("cargo") val cargo: String? = null,
+    @SerialName("photo_url") val fotoUrl: String? = null
 )
