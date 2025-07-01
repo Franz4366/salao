@@ -111,8 +111,8 @@
 
     <com.google.android.material.button.MaterialButton
     android:id="@+id/btn_compartilhar_print"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
+    android:layout_width="200dp"
+    android:layout_height="60dp"
     app:layout_constraintBottom_toTopOf="@id/btn_excluir"
     app:layout_constraintStart_toStartOf="@id/main"
     app:layout_constraintEnd_toEndOf="@id/main"
@@ -120,7 +120,7 @@
     android:paddingVertical="14dp"
     android:textSize="18sp"
     app:cornerRadius="100dp"
-    android:layout_marginBottom="10dp"/>
+    android:layout_marginBottom="6dp"/>
 
     <FrameLayout
         android:id="@+id/group_35"

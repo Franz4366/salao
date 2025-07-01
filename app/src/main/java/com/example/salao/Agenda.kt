@@ -1,7 +1,9 @@
 package com.example.salao
 
+import android.R.attr.id
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import com.example.salao.utils.gerarDiasDoMes
 import android.os.Bundle
 import android.util.Log
@@ -31,6 +33,8 @@ import java.util.*
 import com.example.salao.model.AgendamentoSupabase
 import com.example.salao.model.Cliente
 import com.example.salao.model.Profile
+import com.google.android.material.button.MaterialButton
+import kotlin.math.log
 
 class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
 
@@ -43,7 +47,7 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
     private var selectedDate: Date? = null
     private lateinit var btnExcluir: FrameLayout
-    private val agendamentosSelecionados = mutableListOf<AgendamentoItem>()
+    private lateinit var btnCompartilhar: MaterialButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +60,7 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
         tvMes = findViewById(R.id.tv_mes)
         listaAgendamentosRecyclerView = findViewById(R.id.lista_agendamentos_recycler_view)
         btnExcluir = findViewById(R.id.btn_excluir)
+        btnCompartilhar = findViewById(R.id.btn_compartilhar_print)
 
         calendarRecyclerView.layoutManager =
             LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
@@ -65,6 +70,7 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
         setupNavigationIcons()
         setupAgendamentosList()
         setupExcluirButton()
+        setupCompartilharButton()
 
         atualizarCalendario()
 
@@ -138,8 +144,8 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
         }
 
         if (indexHojeNaLista != -1) {
-             initialScrollPosition = indexHojeNaLista
-             initialSelectedData = hoje.time
+            initialScrollPosition = indexHojeNaLista
+            initialSelectedData = hoje.time
         } else {
             val primeiroDiaMesPrincipal = Calendar.getInstance().apply {
                 time = calendar.time
@@ -150,11 +156,12 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
 
             val indexPrimeiroDiaMesPrincipal = dias.indexOfFirst {
                 val tempCal = Calendar.getInstance().apply { time = it }
-                val primeiroDiaMesPrincipal = Calendar.getInstance().apply { time = primeiroDiaMesPrincipal }
+                val primeiroDiaMesPrincipal =
+                    Calendar.getInstance().apply { time = primeiroDiaMesPrincipal }
 
                 tempCal.get(Calendar.DAY_OF_MONTH) == primeiroDiaMesPrincipal.get(Calendar.DAY_OF_MONTH) &&
-                tempCal.get(Calendar.MONTH) == primeiroDiaMesPrincipal.get(Calendar.MONTH) &&
-                tempCal.get(Calendar.YEAR) == primeiroDiaMesPrincipal.get(Calendar.YEAR)
+                        tempCal.get(Calendar.MONTH) == primeiroDiaMesPrincipal.get(Calendar.MONTH) &&
+                        tempCal.get(Calendar.YEAR) == primeiroDiaMesPrincipal.get(Calendar.YEAR)
             }
             if (indexPrimeiroDiaMesPrincipal != -1) {
                 initialScrollPosition = indexPrimeiroDiaMesPrincipal
@@ -173,59 +180,102 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
             selectedDate = null
         }
     }
+
     private fun setupAgendamentosList() {
         listaAgendamentosRecyclerView.layoutManager = LinearLayoutManager(this)
         agendamentoAdapter = AgendamentoAdapter(mutableListOf(), this)
         listaAgendamentosRecyclerView.adapter = agendamentoAdapter
 
     }
+    override fun onAgendamentoClick(agendamentoItem: AgendamentoItem) {
+        Log.d("Agenda", "Agendamento clicado: $agendamentoItem")
+        atualizarEstadoBotoesAcao()
+    }
 
-    private fun atualizarEstadoBotaoExcluir() {
-        btnExcluir.isEnabled = agendamentosSelecionados.isNotEmpty()
+    private fun atualizarEstadoBotoesAcao() {
+        val temSelecao = agendamentoAdapter.getSelectedItemsIds().isNotEmpty()
+        Log.d("Agenda", "Atualizando estado dos botões. Tem seleção: $temSelecao. IDs selecionados: ${agendamentoAdapter.getSelectedItemsIds()}")
+        btnExcluir.isEnabled = temSelecao
+        btnCompartilhar.isEnabled = temSelecao
+        btnExcluir.alpha = if (temSelecao) 1.0f else 0.5f
+        btnCompartilhar.alpha = if (temSelecao) 1.0f else 0.5f
     }
 
     private fun setupExcluirButton() {
         btnExcluir.isEnabled = false
+        btnExcluir.alpha = 0.5f
         btnExcluir.setOnClickListener {
             Log.d("Agenda", "Botão Excluir clicado!")
             excluirAgendamentosSelecionados()
         }
     }
 
-    override fun onAgendamentoClick(agendamento: AgendamentoItem) {
-        if (agendamentosSelecionados.contains(agendamento)) {
-            agendamentosSelecionados.remove(agendamento)
-        } else {
-            agendamentosSelecionados.add(agendamento)
+    private fun setupCompartilharButton() {
+        btnCompartilhar.isEnabled = false
+        btnCompartilhar.alpha = 0.5f
+        btnCompartilhar.setOnClickListener {
+            Log.d("Agenda", "Botão Compartilhar clicado!")
+            compartilharAgendamentosSelecionados()
         }
     }
 
     private fun excluirAgendamentosSelecionados() {
-        val idsSelecionados = agendamentosSelecionados.map { it.id }.filterNotNull()
+        val idsSelecionados = agendamentoAdapter.getSelectedItemsIds().toList()
         Log.d("Agenda", "Excluindo agendamentos com IDs: $idsSelecionados")
 
+        if (idsSelecionados.isEmpty()) {
+            mostrarToast("Nenhum agendamento selecionado para excluir.")
+            return
+        }
+
         lifecycleScope.launch {
-            if (idsSelecionados.isNotEmpty()) {
-                val resultado = supabaseClient.deletarAgendamentos(idsSelecionados)
-                if (resultado) {
-                    Log.d("Agenda", "Agendamentos excluídos com sucesso!")
-                    mostrarToast("Agendamentos excluídos")
-                    selectedDate?.let { buscarAgendamentosParaData(it) }
-                    agendamentosSelecionados.clear()
-                    btnExcluir.isEnabled = false
-                    atualizarEstadoBotaoExcluir()
-                } else {
-                    Log.e("Agenda", "Erro ao excluir agendamentos.")
-                    mostrarToast("Erro ao excluir agendamentos")
-                }
+            val resultado = supabaseClient.deletarAgendamentos(idsSelecionados)
+            if (resultado) {
+                Log.d("Agenda", "Agendamentos excluídos com sucesso!")
+                mostrarToast("Agendamentos excluídos")
+                agendamentoAdapter.clearSelection()
+                selectedDate?.let { buscarAgendamentosParaData(it) }
+                atualizarEstadoBotoesAcao()
             } else {
-                Log.d("Agenda", "Nenhum agendamento selecionado para excluir.")
-                mostrarToast("Nenhum agendamento selecionado")
+                Log.e("Agenda", "Erro ao excluir agendamentos.")
+                mostrarToast("Erro ao excluir agendamentos")
             }
         }
     }
 
-    private fun buscarAgendamentosParaData(data: Date) {
+    private fun compartilharAgendamentosSelecionados() {
+        val idsSelecionados = agendamentoAdapter.getSelectedItemsIds().toList()
+        Log.d("Agenda", "Compartilhando agendamentos com IDs: $idsSelecionados")
+
+        if (idsSelecionados.size == 1) {
+            val idUnicoSelecionado = idsSelecionados.first()
+            val agendamentoParaDetalhes =
+                agendamentoAdapter.listaAgendamentos.find { it.id == idUnicoSelecionado }
+
+            if (agendamentoParaDetalhes != null) {
+                val intent = Intent(this, DetalhesAgendamentoActivity::class.java).apply {
+                    putExtra("clienteNome", agendamentoParaDetalhes.clienteNome)
+                    putExtra("data", agendamentoParaDetalhes.data)
+                    putExtra("hora", agendamentoParaDetalhes.hora)
+                    putExtra("profissionalNome", agendamentoParaDetalhes.profissionalNome)
+                    putExtra("comentario", agendamentoParaDetalhes.comentario)
+                }
+                startActivity(intent)
+                agendamentoAdapter.clearSelection()
+                atualizarEstadoBotoesAcao()
+            } else {
+                mostrarToast("Agendamento não encontrado.")
+            }
+        } else if (idsSelecionados.isEmpty()) {
+            mostrarToast("Por favor, selecione pelo um agendamento para compartilhar.")
+        } else {
+            mostrarToast("Por favor, selecione apenas um agendamento para compartilhar.")
+            agendamentoAdapter.clearSelection()
+            atualizarEstadoBotoesAcao()
+        }
+    }
+
+        private fun buscarAgendamentosParaData(data: Date) {
         coroutineScope.launch {
             val listaAgendamentoItems = mutableListOf<AgendamentoItem>()
             try {
@@ -258,6 +308,7 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
                 mostrarToast("Erro ao carregar agendamentos.")
             }
             agendamentoAdapter.atualizarLista(listaAgendamentoItems)
+            atualizarEstadoBotoesAcao()
         }
     }
 

@@ -11,4 +11,10 @@
     <color name="red">#FF0000</color>
     <color name="grey_dark">#FF808080</color>
     <color name="blue">#6767ED</color>
-</resources>
+    <color name="grey_light">#FFC0C0C0</color>
+    <color name="brown_light">#FF808080</color>
+    <color name="brown_dark">#FF400E0E</color>
+    <color name="default_item_background">#FFFFFF</color>
+    <color name="selected_item_background">#838385</color>
+
+    </resources>

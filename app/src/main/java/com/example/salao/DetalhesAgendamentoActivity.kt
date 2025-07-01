@@ -35,19 +35,15 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
     private lateinit var tvProfissional: TextView
     private lateinit var tvObservacao: TextView
     private lateinit var labelObservacao: TextView
-    private lateinit var layoutParaPrint: View // O layout que será transformado em imagem
+    private lateinit var layoutParaPrint: View
 
-    // Launcher para a requisição de permissão de escrita/leitura de arquivos
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
-            // Permissão concedida, agora pode tentar salvar e compartilhar
             saveAndShareScreenshot()
         } else {
-            // Permissão negada, informar o usuário
             mostrarToast("Permissão de armazenamento necessária para salvar o print.")
-            // Opcional: mostrar um diálogo para pedir ao usuário para ir às configurações
             if (shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                 showPermissionDeniedDialog()
             }
@@ -60,7 +56,6 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
 
         esconderBarrasDoSistema(this)
 
-        // Inicializar Views
         tvCliente = findViewById(R.id.tv_detalhe_cliente)
         tvDataHora = findViewById(R.id.tv_detalhe_data_hora)
         tvProfissional = findViewById(R.id.tv_detalhe_profissional)
@@ -68,17 +63,14 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
         labelObservacao = findViewById(R.id.label_observacao)
         layoutParaPrint = findViewById(R.id.layout_para_print) // O LinearLayout principal para capturar
 
-        // Receber os dados do agendamento via Intent
         val clienteNome = intent.getStringExtra("clienteNome")
         val data = intent.getStringExtra("data")
         val hora = intent.getStringExtra("hora")
         val profissionalNome = intent.getStringExtra("profissionalNome")
         val comentario = intent.getStringExtra("comentario")
 
-        // Preencher os TextViews com os dados recebidos
         tvCliente.text = clienteNome
 
-        // Formatar a data para exibição no formato DD/MM/AAAA
         try {
             val inputDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             val outputDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))

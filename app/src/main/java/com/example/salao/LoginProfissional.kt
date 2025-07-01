@@ -80,7 +80,6 @@ class LoginProfissional : AppCompatActivity() {
                         val cliente = supabaseClient.getClientePorId(agendamentoSupabase.clienteId)
                         val nomeCliente = cliente?.nome ?: "Cliente não encontrado"
                         val profissionalUuid = agendamentoSupabase.profissionalId
-                        // Use a classe Profile unificada aqui
                         val profissionalProfile = supabaseClient.getProfileById(profissionalUuid)
                         val nomeDoProfissionalExibicao = profissionalProfile?.nome ?: "Profissional não encontrado"
 
@@ -93,8 +92,8 @@ class LoginProfissional : AppCompatActivity() {
                             AgendamentoItem(
                                 id = agendamentoSupabase.id,
                                 clienteNome = nomeCliente,
-                                data = agendamentoSupabase.dataAgendamento, // Usando a data original
-                                hora = agendamentoSupabase.horaAgendamento, // Usando a hora original
+                                data = agendamentoSupabase.dataAgendamento,
+                                hora = agendamentoSupabase.horaAgendamento,
                                 profissionalNome = nomeDoProfissionalExibicao,
                                 comentario = agendamentoSupabase.comentario
                             )

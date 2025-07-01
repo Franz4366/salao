@@ -33,10 +33,8 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-
-// NOVOS IMPORTS PARA AS CLASSES DE MODELO UNIFICADAS
-import com.example.salao.model.Cliente // Importando Cliente do pacote model
-import com.example.salao.model.NovoCliente // Importando NovoCliente do pacote model
+import com.example.salao.model.Cliente
+import com.example.salao.model.NovoCliente
 
 class CadastroCli : AppCompatActivity() {
 
@@ -48,9 +46,8 @@ class CadastroCli : AppCompatActivity() {
     private lateinit var btnDeletarCliente: FrameLayout
     private val supabaseClient = SupabaseClient()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
-    // Agora referenciando Cliente do pacote model
     private var listaClientes: List<Cliente> = emptyList()
-    private var clienteIdParaDeletar: Int? = null
+    private var clienteIdParaDeletar: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,7 +55,6 @@ class CadastroCli : AppCompatActivity() {
         setContentView(R.layout.activity_cadastro_cli)
         esconderBarrasDoSistema(this)
 
-        // Inicialização das Views
         nomeEditText = findViewById(R.id.nome)
         telefoneEditText = findViewById(R.id.telefone)
         emailEditText = findViewById(R.id.email)
@@ -66,29 +62,20 @@ class CadastroCli : AppCompatActivity() {
         btnSalvarCliente = findViewById(R.id.rectangle_9)
         btnDeletarCliente = findViewById(R.id.rectangle_7)
 
-        // Inicialmente o botão Deletar está desabilitado
         btnDeletarCliente.isEnabled = false
 
-        // Configurar o botão Salvar
         btnSalvarCliente.setOnClickListener { cadastrarNovoCliente() }
 
-        // Configurar listeners para AutoCompleteTextView (Nome)
         nomeEditText.addTextChangedListener(nomeTextWatcher)
         nomeEditText.onItemClickListener = nomeItemClickListener
 
-        // Configurar listener para EditText (Data de Nascimento)
         dataNascEditText.setOnClickListener { mostrarDatePickerDialog() }
 
-        // Configurar listener para o botão Deletar
         btnDeletarCliente.setOnClickListener {
-            clienteIdParaDeletar?.takeIf { it != -1 }?.let { id ->
+            clienteIdParaDeletar?.let { id ->
                 confirmarExclusao(id)
             } ?: run {
-                Toast.makeText(
-                    this@CadastroCli,
-                    "Nenhum cliente selecionado para deletar",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this, "Nenhum cliente selecionado para exclusão", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -106,7 +93,6 @@ class CadastroCli : AppCompatActivity() {
             navigateToAgenda(this)
         }
         findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
-            // Ação para o ícone de adicionar (já está na tela de cadastro de cliente)
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -115,11 +101,12 @@ class CadastroCli : AppCompatActivity() {
             insets
         }
 
-        // Tentar obter ID do cliente do Intent (se houver) - útil se a tela for acessada diretamente com um ID
-        clienteIdParaDeletar = intent.getIntExtra("CLIENTE_ID", -1)
+        clienteIdParaDeletar = intent.getStringExtra("CLIENTE_ID")
         Log.d("CadastroCli", "ID do cliente para deletar (onCreate): $clienteIdParaDeletar")
-        if (clienteIdParaDeletar != -1) {
+        if (!clienteIdParaDeletar.isNullOrEmpty()) {
             btnDeletarCliente.isEnabled = true
+        } else {
+            btnDeletarCliente.isEnabled = false
         }
     }
 
@@ -135,7 +122,6 @@ class CadastroCli : AppCompatActivity() {
         }
     }
 
-    // Listeners
     private val nomeTextWatcher = object : TextWatcher {
         override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
         override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -155,26 +141,22 @@ class CadastroCli : AppCompatActivity() {
     private val nomeItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
         val nomeSelecionado = nomeEditText.adapter.getItem(position) as String
         preencherCamposCliente(nomeSelecionado)
-        // Obter o ID do cliente selecionado da sua lista (listaClientes)
         val clienteSelecionado =
             listaClientes.find { it.nome.equals(nomeSelecionado, ignoreCase = true) }
         clienteSelecionado?.let {
             clienteIdParaDeletar = it.id
             Log.d("CadastroCli", "Cliente selecionado. ID para deletar: $clienteIdParaDeletar")
-            // Habilitar o botão Deletar agora que um cliente foi selecionado
             btnDeletarCliente.isEnabled = true
         } ?: run {
-            clienteIdParaDeletar = null // Definir como null ou -1 para indicar que nenhum cliente válido está selecionado
+            clienteIdParaDeletar = null
             btnDeletarCliente.isEnabled = false
             Log.d("CadastroCli", "Nenhum cliente correspondente encontrado.")
         }
     }
 
-    // Funções de busca e atualização de UI
     private fun buscarClientes(prefixo: String) {
         coroutineScope.launch {
             try {
-                // Agora SupabaseClient.buscarClientesPorNome retorna List<Cliente> do pacote model
                 listaClientes = supabaseClient.buscarClientesPorNome(prefixo)
                 val nomesClientes = listaClientes.map { it.nome }
                 atualizarSugestoesNome(nomesClientes)
@@ -195,7 +177,7 @@ class CadastroCli : AppCompatActivity() {
     private fun preencherCamposCliente(nomeSelecionado: String) {
         val cliente = listaClientes.find { it.nome.equals(nomeSelecionado, ignoreCase = true) }
         cliente?.let {
-            telefoneEditText.setText(it.telefone ?: "") // Telefone já é String?
+            telefoneEditText.setText(it.telefone ?: "")
             emailEditText.setText(it.email ?: "")
             dataNascEditText.setText(formatarDataParaExibicao(it.dataNascimento))
         }
@@ -206,8 +188,8 @@ class CadastroCli : AppCompatActivity() {
         telefoneEditText.text.clear()
         emailEditText.text.clear()
         dataNascEditText.text.clear()
-        clienteIdParaDeletar = null // Limpar o ID do cliente para deletar
-        btnDeletarCliente.isEnabled = false // Desabilitar o botão deletar
+        clienteIdParaDeletar = null
+        btnDeletarCliente.isEnabled = false
     }
 
     private fun mostrarDatePickerDialog() {
@@ -237,7 +219,7 @@ class CadastroCli : AppCompatActivity() {
                 val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
                 val outputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                 val date = inputFormat.parse(dataSupabase)
-                date?.let { outputFormat.format(it) } ?: dataSupabase // Tratar parse nulo
+                date?.let { outputFormat.format(it) } ?: dataSupabase
             } catch (e: Exception) {
                 Log.e("CadastroCli", "Erro ao formatar data para exibição: ${e.message}", e)
                 dataSupabase
@@ -253,7 +235,7 @@ class CadastroCli : AppCompatActivity() {
                 val inputFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
                 val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
                 val date = inputFormat.parse(dataLocal)
-                date?.let { outputFormat.format(it) } ?: dataLocal // Tratar parse nulo
+                date?.let { outputFormat.format(it) } ?: dataLocal
             } catch (e: Exception) {
                 Log.e("CadastroCli", "Erro ao formatar data para Supabase: ${e.message}", e)
                 dataLocal
@@ -263,7 +245,6 @@ class CadastroCli : AppCompatActivity() {
         }
     }
 
-    // Funções de CRUD (Create, Delete)
     private fun cadastrarNovoCliente() {
         val nome = nomeEditText.text.toString().trim()
         val telefone = telefoneEditText.text.toString().trim()
@@ -276,10 +257,8 @@ class CadastroCli : AppCompatActivity() {
             return
         }
 
-        // Usando a classe NovoCliente do pacote model
-        // Ajustei o construtor para incluir 'nome' que estava faltando
         val novoCliente = NovoCliente(
-            nome = nome, // Adicionado o nome
+            nome = nome,
             telefone = telefone.ifEmpty { null },
             email = email.ifEmpty { null },
             dataNascimento = dataFormatadaSupabase.ifEmpty { null }
@@ -302,7 +281,7 @@ class CadastroCli : AppCompatActivity() {
         }
     }
 
-    private fun confirmarExclusao(clienteId: Int) {
+    private fun confirmarExclusao(clienteId: String) {
         AlertDialog.Builder(this)
             .setTitle("Confirmar Exclusão")
             .setMessage("Tem certeza que deseja deletar este cliente?")
@@ -314,7 +293,7 @@ class CadastroCli : AppCompatActivity() {
             .show()
     }
 
-    private fun deletarCliente(clienteId: Int) {
+    private fun deletarCliente(clienteId: String) {
         Log.d("CadastroCli", "Deletar cliente chamado com ID: $clienteId")
         coroutineScope.launch {
             try {

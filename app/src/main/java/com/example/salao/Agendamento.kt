@@ -97,7 +97,6 @@ class Agendamento : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_agendamento)
 
-        // Inicializar as Views
         calendarRecyclerView = findViewById(R.id.calendarRecyclerView)
         tvMes = findViewById(R.id.tv_mes)
         pesquisa = findViewById(R.id.pesquisa)
@@ -106,12 +105,11 @@ class Agendamento : AppCompatActivity() {
         btAgendar = findViewById(R.id.bt_agendar)
         iconHome = findViewById(R.id.icon_home)
         iconCalendar = findViewById(R.id.icon_calendar)
-        iconAgendar = findViewById(R.id.icon_agendar) // Use o ID correto do XML
+        iconAgendar = findViewById(R.id.icon_agendar)
         iconAdd = findViewById(R.id.icon_add)
         iconUser = findViewById(R.id.icon_user)
         containerProfissionais = findViewById(R.id.container_profissionais)
 
-        // 1. Inicializa selectedDate com a data atual ao iniciar a tela.
         selectedDate = Calendar.getInstance().time
 
         pesquisa.setOnItemClickListener { adapterView, _, position, _ ->
@@ -145,10 +143,8 @@ class Agendamento : AppCompatActivity() {
             salvarAgendamento()
         }
 
-        // 2. Configura o LayoutManager para o RecyclerView do calendário.
         calendarRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
 
-        // 3. Atualiza o calendário e rola para o dia atual.
         calendarRecyclerView.post {
             atualizarCalendario()
             scrollToCurrentDate()
@@ -359,11 +355,12 @@ class Agendamento : AppCompatActivity() {
             navigateToLogin(this)
         }
         findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
-            // Já está na tela de Agendamento, pode optar por não fazer nada.
         }
+
         findViewById<ImageView>(R.id.icon_calendar)?.setOnClickListener {
             navigateToAgenda(this)
         }
+
         findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
             navigateToCadastroCliente(this)
         }
@@ -375,29 +372,27 @@ class Agendamento : AppCompatActivity() {
 
         btnAnterior.setOnClickListener {
             calendar.add(Calendar.MONTH, -1)
-            // Ao mudar o mês, queremos que o primeiro dia do NOVO MÊS seja selecionado.
             val newMonthFirstDay = Calendar.getInstance().apply {
                 time = calendar.time
                 set(Calendar.DAY_OF_MONTH, 1)
             }.time
-            selectedDate = newMonthFirstDay // Define o selectedDate para o primeiro dia do novo mês
-            atualizarCalendario() // Recria o adaptador com a nova selectedDate
+            selectedDate = newMonthFirstDay
+            atualizarCalendario()
             calendarRecyclerView.post {
-                scrollToCurrentDate() // Rola para o novo selectedDate (primeiro dia do mês)
+                scrollToCurrentDate()
             }
         }
 
         btnProximo.setOnClickListener {
             calendar.add(Calendar.MONTH, 1)
-            // Ao mudar o mês, queremos que o primeiro dia do NOVO MÊS seja selecionado.
             val newMonthFirstDay = Calendar.getInstance().apply {
                 time = calendar.time
                 set(Calendar.DAY_OF_MONTH, 1)
             }.time
-            selectedDate = newMonthFirstDay // Define o selectedDate para o primeiro dia do novo mês
-            atualizarCalendario() // Recria o adaptador com a nova selectedDate
+            selectedDate = newMonthFirstDay
+            atualizarCalendario()
             calendarRecyclerView.post {
-                scrollToCurrentDate() // Rola para o novo selectedDate (primeiro dia do mês)
+                scrollToCurrentDate()
             }
         }
     }
@@ -419,11 +414,9 @@ class Agendamento : AppCompatActivity() {
         val adapter = DiaSemanaAdapter(dias, calendar)
         adapter.setOnDateClickListener(object : OnDateClickListener {
             override fun onDateClick(date: Date) {
-                // Ao clicar, atualizamos a data selecionada e informamos o adaptador para redesenhar.
-                val oldSelectedPosition = adapter.selectedPosition // Armazena a posição selecionada anteriormente
-                selectedDate = date // Atualiza a data selecionada
+                val oldSelectedPosition = adapter.selectedPosition
+                selectedDate = date
 
-                // Encontra a posição da data clicada
                 val clickedIndex = dias.indexOfFirst {
                     val cal1 = Calendar.getInstance().apply { time = it }
                     val cal2 = Calendar.getInstance().apply { time = date }
@@ -433,22 +426,19 @@ class Agendamento : AppCompatActivity() {
                 }
 
                 if (clickedIndex != -1) {
-                    // Primeiro, desmarca a seleção antiga se houver e for diferente da nova
                     if (oldSelectedPosition != null && oldSelectedPosition != clickedIndex) {
-                        adapter.selectedPosition = null // Desmarcar a posição antiga no adaptador
-                        adapter.notifyItemChanged(oldSelectedPosition) // Notifica o item antigo para redesenhar
+                        adapter.selectedPosition = null
+                        adapter.notifyItemChanged(oldSelectedPosition)
                     }
-                    adapter.selectedPosition = clickedIndex // Define a nova posição selecionada
-                    adapter.notifyItemChanged(clickedIndex) // Notifica o novo item para ser desenhado como selecionado
+                    adapter.selectedPosition = clickedIndex
+                    adapter.notifyItemChanged(clickedIndex)
                 }
                 Log.d("Agendamento", "Data selecionada: $date")
-                // REMOVIDO: A chamada a buscarAgendamentosParaData(date) não pertence a esta Activity.
             }
         })
         calendarRecyclerView.adapter = adapter
 
-        // Lógica de SELEÇÃO INICIAL ao carregar ou atualizar o calendário
-        val targetDateForInitialSelection = selectedDate // Usa a data que está atualmente em selectedDate
+        val targetDateForInitialSelection = selectedDate
 
         if (targetDateForInitialSelection != null) {
             val indexToSetInitially = dias.indexOfFirst {
@@ -461,13 +451,12 @@ class Agendamento : AppCompatActivity() {
 
             if (indexToSetInitially != -1) {
                 adapter.selectedPosition = indexToSetInitially
-                adapter.notifyDataSetChanged() // Garante que o adaptador redesenhe com a seleção inicial
+                adapter.notifyDataSetChanged()
             } else {
                 adapter.selectedPosition = null
                 adapter.notifyDataSetChanged()
             }
         } else {
-            // Se selectedDate for nulo (após uma limpeza, por exemplo), deseleciona tudo.
             adapter.selectedPosition = null
             adapter.notifyDataSetChanged()
         }
@@ -497,7 +486,6 @@ class Agendamento : AppCompatActivity() {
 
                     layoutManager.scrollToPositionWithOffset(indexToScroll, offset)
                 } else {
-                    // Fallback se o item não está visível (menos comum com a lógica de post)
                     val itemWidthFallback = resources.getDimensionPixelSize(R.dimen.calendar_item_width)
                     val recyclerViewWidth = calendarRecyclerView.width
                     val offsetFallback = (recyclerViewWidth / 2) - (itemWidthFallback / 2)
