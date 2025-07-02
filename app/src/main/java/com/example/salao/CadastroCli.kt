@@ -2,12 +2,11 @@ package com.example.salao
 
 import android.app.AlertDialog
 import android.app.DatePickerDialog
-import android.content.Intent
+import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
-import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
@@ -21,8 +20,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgendamento
-import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToLogin
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToPerfilUsuario
 import com.example.salao.network.SupabaseClient
 import com.example.salao.utils.esconderBarrasDoSistema
 import kotlinx.coroutines.CoroutineScope
@@ -49,11 +48,24 @@ class CadastroCli : AppCompatActivity() {
     private var listaClientes: List<Cliente> = emptyList()
     private var clienteIdParaDeletar: String? = null
 
+    private var sessionToken: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_cadastro_cli)
         esconderBarrasDoSistema(this)
+
+        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        sessionToken = sharedPreferences.getString("session_token", null)
+
+        if (sessionToken == null) {
+            Log.e("CadastroCli", "Token de sessão não encontrado. Redirecionando para login.")
+            Toast.makeText(this, "Sessão expirada ou inválida. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
+            navigateToLogin(this)
+            finish()
+            return
+        }
 
         nomeEditText = findViewById(R.id.nome)
         telefoneEditText = findViewById(R.id.telefone)
@@ -80,6 +92,16 @@ class CadastroCli : AppCompatActivity() {
         }
 
         setupNavigationIcons()
+
+        val intentClienteId = intent.getStringExtra("CLIENTE_ID")
+        Log.d("CadastroCli", "ID do cliente da Intent (onCreate): $intentClienteId")
+        if (!intentClienteId.isNullOrEmpty()) {
+            clienteIdParaDeletar = intentClienteId
+
+            btnDeletarCliente.isEnabled = true
+        } else {
+            btnDeletarCliente.isEnabled = false
+        }
     }
 
     private fun setupNavigationIcons() {
@@ -95,18 +117,14 @@ class CadastroCli : AppCompatActivity() {
         findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
         }
 
+        findViewById<ImageView>(R.id.icon_user)?.setOnClickListener {
+            navigateToPerfilUsuario(this)
+        }
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
-        }
-
-        clienteIdParaDeletar = intent.getStringExtra("CLIENTE_ID")
-        Log.d("CadastroCli", "ID do cliente para deletar (onCreate): $clienteIdParaDeletar")
-        if (!clienteIdParaDeletar.isNullOrEmpty()) {
-            btnDeletarCliente.isEnabled = true
-        } else {
-            btnDeletarCliente.isEnabled = false
         }
     }
 
@@ -140,30 +158,37 @@ class CadastroCli : AppCompatActivity() {
 
     private val nomeItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
         val nomeSelecionado = nomeEditText.adapter.getItem(position) as String
-        preencherCamposCliente(nomeSelecionado)
-        val clienteSelecionado =
-            listaClientes.find { it.nome.equals(nomeSelecionado, ignoreCase = true) }
+        val clienteSelecionado = listaClientes.find { it.nome.equals(nomeSelecionado, ignoreCase = true) }
+
         clienteSelecionado?.let {
+            preencherCamposCliente(it)
             clienteIdParaDeletar = it.id
             Log.d("CadastroCli", "Cliente selecionado. ID para deletar: $clienteIdParaDeletar")
             btnDeletarCliente.isEnabled = true
         } ?: run {
-            clienteIdParaDeletar = null
-            btnDeletarCliente.isEnabled = false
-            Log.d("CadastroCli", "Nenhum cliente correspondente encontrado.")
+            limparCampos()
+            Log.d("CadastroCli", "Nenhum cliente correspondente encontrado para preenchimento.")
         }
     }
 
     private fun buscarClientes(prefixo: String) {
+        val currentSessionToken = sessionToken
+        if (currentSessionToken == null) {
+            handleAuthenticationError()
+            return
+        }
+
         coroutineScope.launch {
             try {
-                listaClientes = supabaseClient.buscarClientesPorNome(prefixo)
+                listaClientes = supabaseClient.buscarClientesPorNome(prefixo, currentSessionToken)
                 val nomesClientes = listaClientes.map { it.nome }
                 atualizarSugestoesNome(nomesClientes)
             } catch (e: Exception) {
                 Log.e("CadastroCli", "Erro ao buscar clientes: ${e.message}", e)
-                Toast.makeText(this@CadastroCli, "Erro ao buscar clientes", Toast.LENGTH_SHORT)
-                    .show()
+                Toast.makeText(this@CadastroCli, "Erro ao buscar clientes", Toast.LENGTH_SHORT).show()
+                if (e.message?.contains("401 Unauthorized") == true || e.message?.contains("JWSError") == true) {
+                    handleAuthenticationError()
+                }
             }
         }
     }
@@ -174,13 +199,11 @@ class CadastroCli : AppCompatActivity() {
         adapter.notifyDataSetChanged()
     }
 
-    private fun preencherCamposCliente(nomeSelecionado: String) {
-        val cliente = listaClientes.find { it.nome.equals(nomeSelecionado, ignoreCase = true) }
-        cliente?.let {
-            telefoneEditText.setText(it.telefone ?: "")
-            emailEditText.setText(it.email ?: "")
-            dataNascEditText.setText(formatarDataParaExibicao(it.dataNascimento))
-        }
+    private fun preencherCamposCliente(cliente: Cliente) {
+        nomeEditText.setText(cliente.nome)
+        telefoneEditText.setText(cliente.telefone ?: "")
+        emailEditText.setText(cliente.email ?: "")
+        dataNascEditText.setText(formatarDataParaExibicao(cliente.dataNascimento))
     }
 
     private fun limparCampos() {
@@ -246,6 +269,12 @@ class CadastroCli : AppCompatActivity() {
     }
 
     private fun cadastrarNovoCliente() {
+        val currentSessionToken = sessionToken
+        if (currentSessionToken == null) {
+            handleAuthenticationError()
+            return
+        }
+
         val nome = nomeEditText.text.toString().trim()
         val telefone = telefoneEditText.text.toString().trim()
         val email = emailEditText.text.toString().trim()
@@ -266,7 +295,7 @@ class CadastroCli : AppCompatActivity() {
 
         coroutineScope.launch {
             try {
-                supabaseClient.cadastrarCliente(novoCliente)
+                supabaseClient.cadastrarCliente(novoCliente, currentSessionToken)
                 Toast.makeText(
                     this@CadastroCli,
                     "Cliente cadastrado com sucesso!",
@@ -275,8 +304,10 @@ class CadastroCli : AppCompatActivity() {
                 limparCampos()
             } catch (e: Exception) {
                 Log.e("CadastroCli", "Erro ao cadastrar cliente: ${e.message}", e)
-                Toast.makeText(this@CadastroCli, "Erro ao cadastrar cliente", Toast.LENGTH_LONG)
-                    .show()
+                Toast.makeText(this@CadastroCli, "Erro ao cadastrar cliente", Toast.LENGTH_LONG).show()
+                if (e.message?.contains("401 Unauthorized") == true || e.message?.contains("JWSError") == true) {
+                    handleAuthenticationError()
+                }
             }
         }
     }
@@ -294,22 +325,43 @@ class CadastroCli : AppCompatActivity() {
     }
 
     private fun deletarCliente(clienteId: String) {
+        val currentSessionToken = sessionToken
+        if (currentSessionToken == null) {
+            handleAuthenticationError()
+            return
+        }
+
         Log.d("CadastroCli", "Deletar cliente chamado com ID: $clienteId")
         coroutineScope.launch {
             try {
-                supabaseClient.deletarCliente(clienteId)
+                supabaseClient.deletarCliente(clienteId, currentSessionToken)
                 Log.d("CadastroCli", "Cliente com ID $clienteId deletado com sucesso!")
                 Toast.makeText(
                     this@CadastroCli,
                     "Cliente deletado com sucesso!",
                     Toast.LENGTH_SHORT
                 ).show()
-                finish()
+                limparCampos()
             } catch (e: Exception) {
                 Log.e("CadastroCli", "Erro ao deletar cliente: ${e.message}", e)
-                Toast.makeText(this@CadastroCli, "Erro ao deletar cliente", Toast.LENGTH_SHORT)
-                    .show()
+                Toast.makeText(this@CadastroCli, "Erro ao deletar cliente", Toast.LENGTH_SHORT).show()
+                if (e.message?.contains("401 Unauthorized") == true || e.message?.contains("JWSError") == true) {
+                    handleAuthenticationError()
+                }
             }
         }
+    }
+
+    private fun handleAuthenticationError() {
+        Log.e("CadastroCli", "Erro de autenticação (401 Unauthorized / JWSError). Deslogando usuário.")
+        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        with(sharedPreferences.edit()) {
+            remove("user_id")
+            remove("session_token")
+            apply()
+        }
+        Toast.makeText(this, "Sessão expirada. Faça login novamente.", Toast.LENGTH_LONG).show()
+        navigateToLogin(this)
+        finish()
     }
 }

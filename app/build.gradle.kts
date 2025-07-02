@@ -78,6 +78,8 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.play.services.auth)
     implementation(libs.androidx.activity)
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
 
     //Testes
     testImplementation(libs.junit)
@@ -97,4 +99,5 @@ dependencies {
     implementation (libs.androidx.cardview)
     implementation (libs.androidx.startup.runtime)
     implementation (libs.androidx.profileinstaller)
+    implementation(libs.androidx.appcompat.v171)
 }

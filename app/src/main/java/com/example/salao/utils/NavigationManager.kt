@@ -6,6 +6,7 @@ import com.example.salao.Agenda
 import com.example.salao.Agendamento
 import com.example.salao.CadastroCli
 import com.example.salao.LoginProfissional
+import com.example.salao.PerfilUsuarioActivity
 
 object NavigationManager {
 
@@ -32,6 +33,11 @@ object NavigationManager {
     fun navigateToCadastroCliente(context: Context, clienteId: Int) {
         val intent = Intent(context, CadastroCli::class.java)
         intent.putExtra("CLIENTE_ID", clienteId)
+        context.startActivity(intent)
+    }
+
+    fun navigateToPerfilUsuario(context: Context) {
+        val intent = Intent(context, PerfilUsuarioActivity::class.java)
         context.startActivity(intent)
     }
 }

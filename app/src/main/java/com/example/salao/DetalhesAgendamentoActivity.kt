@@ -61,7 +61,7 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
         tvProfissional = findViewById(R.id.tv_detalhe_profissional)
         tvObservacao = findViewById(R.id.tv_detalhe_observacao)
         labelObservacao = findViewById(R.id.label_observacao)
-        layoutParaPrint = findViewById(R.id.layout_para_print) // O LinearLayout principal para capturar
+        layoutParaPrint = findViewById(R.id.layout_para_print)
 
         val clienteNome = intent.getStringExtra("clienteNome")
         val data = intent.getStringExtra("data")
@@ -82,7 +82,7 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
             }
         } catch (e: Exception) {
             Log.e("DetalhesAgendamento", "Erro ao formatar data: ${e.message}")
-            tvDataHora.text = "$data às $hora" // Fallback
+            tvDataHora.text = "$data às $hora"
         }
 
         tvProfissional.text = profissionalNome
@@ -96,7 +96,6 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
             labelObservacao.visibility = View.GONE
         }
 
-        // Configurar botões
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_compartilhar_print).setOnClickListener {
             checkAndRequestPermission()
         }
@@ -139,7 +138,6 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
         }
     }
 
-    // Função para tirar o screenshot de uma View específica
     private fun takeScreenshotOfView(view: View): Bitmap? {
         try {
             val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
@@ -152,12 +150,11 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
         }
     }
 
-    // Função para salvar o Bitmap em um arquivo
     private fun saveBitmapToFile(bitmap: Bitmap): File? {
         val filename = "agendamento_${System.currentTimeMillis()}.png"
-        val imagesFolder = File(cacheDir, "screenshots") // Salva na pasta cache do app
+        val imagesFolder = File(cacheDir, "screenshots")
         if (!imagesFolder.exists()) {
-            imagesFolder.mkdirs() // Cria o diretório se não existir
+            imagesFolder.mkdirs()
         }
         val file = File(imagesFolder, filename)
         try {
@@ -173,12 +170,11 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
         }
     }
 
-    // Função para compartilhar a imagem
     private fun shareImage(file: File) {
         val uri: Uri? = try {
             FileProvider.getUriForFile(
                 this,
-                "${applicationContext.packageName}.fileprovider", // Precisa ser definido no AndroidManifest.xml
+                "${applicationContext.packageName}.fileprovider",
                 file
             )
         } catch (e: IllegalArgumentException) {
@@ -191,7 +187,7 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
                 action = Intent.ACTION_SEND
                 putExtra(Intent.EXTRA_STREAM, uri)
                 type = "image/png"
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) // Concede permissão de leitura temporária
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             startActivity(Intent.createChooser(shareIntent, "Compartilhar Agendamento via"))
         } else {
@@ -199,7 +195,6 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
         }
     }
 
-    // Diálogo para informar ao usuário que a permissão foi negada
     private fun showPermissionDeniedDialog() {
         AlertDialog.Builder(this)
             .setTitle("Permissão Negada")
@@ -217,7 +212,6 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
             .show()
     }
 
-    // Função de extensão para exibir um Toast
     fun Context.mostrarToast(mensagem: String) {
         Toast.makeText(this, mensagem, Toast.LENGTH_SHORT).show()
     }

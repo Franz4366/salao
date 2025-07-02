@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.salao.network.SupabaseClient
 import com.example.salao.utils.esconderBarrasDoSistema
 import android.app.TimePickerDialog
+import android.content.Context
 import android.content.Intent
 import java.util.*
 import android.text.Editable
@@ -36,11 +37,12 @@ import android.graphics.Paint
 import android.view.LayoutInflater
 import android.widget.EditText
 import android.widget.Toast
-import com.example.salaa.DiaSemanaAdapter // Importando o adaptador já existente
-import com.example.salaa.OnDateClickListener // Importando o listener já existente
+import com.example.salaa.DiaSemanaAdapter
+import com.example.salaa.OnDateClickListener
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToLogin
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToPerfilUsuario
 import com.squareup.picasso.Transformation
 import com.example.salao.model.Profile
 
@@ -69,23 +71,7 @@ class Agendamento : AppCompatActivity() {
     private val supabaseClient = SupabaseClient()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
 
-    private fun buscarClientes(prefixo: String) {
-        coroutineScope.launch {
-            try {
-                val clientes = supabaseClient.buscarClientesPorNome(prefixo)
-                val nomesClientes = clientes.map { it.nome }
-                atualizarSugestoes(nomesClientes)
-            } catch (e: Exception) {
-                Log.e("Agendamento", "Erro ao buscar clientes: ${e.message}")
-            }
-        }
-    }
-
-    private fun atualizarSugestoes(nomes: List<String>) {
-        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, nomes)
-        pesquisa.setAdapter(adapter)
-        adapter.notifyDataSetChanged()
-    }
+    private var sessionToken: String? = null
 
     override fun onDestroy() {
         super.onDestroy()
@@ -96,6 +82,17 @@ class Agendamento : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_agendamento)
+
+        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        sessionToken = sharedPreferences.getString("session_token", null)
+
+        if (sessionToken == null) {
+            Log.e("Agendamento", "Token de sessão não encontrado. Redirecionando para login.")
+            Toast.makeText(this, "Sessão expirada ou inválida. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
+            navigateToLogin(this)
+            finish()
+            return
+        }
 
         calendarRecyclerView = findViewById(R.id.calendarRecyclerView)
         tvMes = findViewById(R.id.tv_mes)
@@ -164,6 +161,14 @@ class Agendamento : AppCompatActivity() {
     }
 
     private fun salvarAgendamento() {
+        val currentSessionToken = sessionToken
+        if (currentSessionToken == null) {
+            exibirMensagem("Erro: Token de autenticação não encontrado. Faça login novamente.")
+            navigateToLogin(this)
+            finish()
+            return
+        }
+
         if (selectedDate != null && selectedClientName != null && selectedHour != null && selectedProfessional != null) {
             val dataAgendamento = SimpleDateFormat("yyyy-MM-dd", Locale("pt", "BR")).format(selectedDate!!)
             val horaAgendamento = String.format("%02d:%02d", selectedHour, selectedMinute)
@@ -174,7 +179,7 @@ class Agendamento : AppCompatActivity() {
 
             coroutineScope.launch {
                 try {
-                    val cliente = supabaseClient.getClientePorNome(selectedClientName!!)
+                    val cliente = supabaseClient.getClientePorNome(selectedClientName!!, currentSessionToken)
                     if (cliente != null) {
                         val clienteId = cliente.id
 
@@ -183,7 +188,8 @@ class Agendamento : AppCompatActivity() {
                             dataAgendamento = dataAgendamento,
                             horaAgendamento = horaAgendamento,
                             profissionalId = profissionalIdParaAgendamento,
-                            comentario = observacoes
+                            comentario = observacoes,
+                            userJwtToken = currentSessionToken
                         )
 
                         Log.d("Agendamento", "Resultado de criarAgendamento: $sucesso")
@@ -191,6 +197,7 @@ class Agendamento : AppCompatActivity() {
 
                         if (sucesso) {
                             Log.d("Agendamento", "Agendamento criado com sucesso! Iniciando DetalhesAgendamentoActivity.")
+                            limparCamposAgendamento()
 
                             val intent = Intent(this@Agendamento, DetalhesAgendamentoActivity::class.java).apply {
                                 putExtra("clienteNome", cliente.nome)
@@ -208,13 +215,57 @@ class Agendamento : AppCompatActivity() {
                         exibirMensagem("Cliente não encontrado.")
                     }
                 } catch (e: Exception) {
-                    Log.e("Agendamento", "Erro ao salvar agendamento: ${e.message}")
-                    exibirMensagem("Erro ao salvar o agendamento.")
+                    Log.e("Agendamento", "Erro ao salvar agendamento: ${e.message}", e)
+                    exibirMensagem("Erro ao salvar o agendamento: ${e.message}")
+                    if (e.message?.contains("401 Unauthorized") == true || e.message?.contains("JWSError") == true) {
+                        Log.e("Agendamento", "Erro de autenticação (401 Unauthorized / JWSError). Deslogando usuário.")
+                        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+                        with(sharedPreferences.edit()) {
+                            remove("user_id")
+                            remove("session_token")
+                            apply()
+                        }
+                        Toast.makeText(this@Agendamento, "Sessão expirada. Faça login novamente.", Toast.LENGTH_LONG).show()
+                        navigateToLogin(this@Agendamento)
+                        finish()
+                    }
                 }
             }
         } else {
             exibirMensagem("Por favor, selecione a data, o cliente, a hora e o profissional.")
         }
+    }
+
+    private fun buscarClientes(prefixo: String) {
+        val currentSessionToken = sessionToken
+        if (currentSessionToken == null) {
+            handleAuthenticationError()
+            Log.e("Agendamento", "Token de sessão é nulo ao buscar clientes. Redirecionando para login.")
+            Toast.makeText(this, "Erro de autenticação. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
+            navigateToLogin(this)
+            finish()
+            return
+        }
+
+        coroutineScope.launch {
+            try {
+                val clientes = supabaseClient.buscarClientesPorNome(prefixo, currentSessionToken)
+                val nomesClientes = clientes.map { it.nome }
+                atualizarSugestoes(nomesClientes)
+            } catch (e: Exception) {
+                Log.e("Agendamento", "Erro ao buscar clientes: ${e.message}", e)
+                Toast.makeText(this@Agendamento, "Erro ao buscar clientes: ${e.message}", Toast.LENGTH_LONG).show()
+                if (e.message?.contains("401 Unauthorized") == true || e.message?.contains("JWSError") == true) {
+                    handleAuthenticationError()
+                }
+            }
+        }
+    }
+
+    private fun atualizarSugestoes(nomes: List<String>) {
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, nomes)
+        pesquisa.setAdapter(adapter)
+        adapter.notifyDataSetChanged()
     }
 
     private fun limparCamposAgendamento() {
@@ -224,10 +275,11 @@ class Agendamento : AppCompatActivity() {
         selectedHour = 8
         selectedMinute = 0
         pesquisa.text.clear()
+        camp_obs.text.clear()
         cxHora.text = "8:00"
-        findViewById<EditText>(R.id.camp_obs)?.text?.clear()
         selectedProfessionalView?.setBackgroundResource(android.R.color.transparent)
         selectedProfessionalView = null
+
 
         atualizarCalendario()
         calendarRecyclerView.post {
@@ -236,9 +288,18 @@ class Agendamento : AppCompatActivity() {
     }
 
     private fun carregarProfissionais() {
+        val currentSessionToken = sessionToken
+        if (currentSessionToken == null) {
+            Log.e("Agendamento", "Token de sessão é nulo ao carregar profissionais. Redirecionando para login.")
+            Toast.makeText(this, "Erro de autenticação. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
+            navigateToLogin(this)
+            finish()
+            return
+        }
+
         coroutineScope.launch {
             try {
-                val profissionais = supabaseClient.getProfissionais()
+                val profissionais = supabaseClient.getProfissionais(currentSessionToken)
                 containerProfissionais.removeAllViews()
 
                 if (profissionais.isNotEmpty()) {
@@ -257,7 +318,8 @@ class Agendamento : AppCompatActivity() {
                     containerProfissionais.addView(mensagemTextView)
                 }
             } catch (e: Exception) {
-                Log.e("Agendamento", "Erro ao carregar profissionais: ${e.message}")
+                Log.e("Agendamento", "Erro ao carregar profissionais: ${e.message}", e)
+                Toast.makeText(this@Agendamento, "Erro ao carregar profissionais: ${e.message}", Toast.LENGTH_LONG).show()
                 val mensagemTextView = TextView(this@Agendamento)
                 mensagemTextView.text = "Erro ao carregar profissionais."
                 mensagemTextView.layoutParams = LinearLayout.LayoutParams(
@@ -266,9 +328,26 @@ class Agendamento : AppCompatActivity() {
                 )
                 mensagemTextView.gravity = View.TEXT_ALIGNMENT_CENTER
                 containerProfissionais.addView(mensagemTextView)
+                if (e.message?.contains("401 Unauthorized") == true || e.message?.contains("JWSError") == true) {
+                    handleAuthenticationError()
+                }
             }
         }
     }
+
+    private fun handleAuthenticationError() {
+        Log.e("Agendamento", "Erro de autenticação (401 Unauthorized / JWSError). Deslogando usuário.")
+        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        with(sharedPreferences.edit()) {
+            remove("user_id")
+            remove("session_token")
+            apply()
+        }
+        Toast.makeText(this, "Sessão expirada. Faça login novamente.", Toast.LENGTH_LONG).show()
+        navigateToLogin(this)
+        finish()
+    }
+
 
     private fun criarViewProfissional(profissional: Profile): View {
         val view = LayoutInflater.from(this).inflate(R.layout.item_profissional, containerProfissionais, false)
@@ -364,8 +443,9 @@ class Agendamento : AppCompatActivity() {
         findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
             navigateToCadastroCliente(this)
         }
-
-        esconderBarrasDoSistema(this)
+        findViewById<ImageView>(R.id.icon_user)?.setOnClickListener {
+            navigateToPerfilUsuario(this)
+        }
 
         val btnAnterior: ImageView = findViewById(R.id.seta_anterior)
         val btnProximo: ImageView = findViewById(R.id.seta_proximo)

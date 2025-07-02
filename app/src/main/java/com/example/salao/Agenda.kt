@@ -1,6 +1,5 @@
 package com.example.salao
 
-import android.R.attr.id
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -21,6 +20,7 @@ import com.example.salaa.OnDateClickListener
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgendamento
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToLogin
+import com.example.salao.com.example.salao.utils.NavigationManager.navigateToPerfilUsuario
 import com.example.salao.network.SupabaseClient
 import com.example.salao.utils.esconderBarrasDoSistema
 import kotlinx.coroutines.CoroutineScope
@@ -34,7 +34,6 @@ import com.example.salao.model.AgendamentoSupabase
 import com.example.salao.model.Cliente
 import com.example.salao.model.Profile
 import com.google.android.material.button.MaterialButton
-import kotlin.math.log
 
 class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
 
@@ -49,12 +48,27 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
     private lateinit var btnExcluir: FrameLayout
     private lateinit var btnCompartilhar: MaterialButton
 
+    private var loggedInUserId: String? = null
+    private var sessionToken: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_agenda)
 
         esconderBarrasDoSistema(this)
+
+        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        loggedInUserId = sharedPreferences.getString("user_id", null)
+        sessionToken = sharedPreferences.getString("session_token", null)
+
+        if (sessionToken == null) {
+            Log.e("Agenda", "Token de sessão não encontrado. Redirecionando para login.")
+            Toast.makeText(this, "Sessão expirada ou inválida. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
+            navigateToLogin(this)
+            finish()
+            return
+        }
 
         calendarRecyclerView = findViewById(R.id.calendarRecyclerView)
         tvMes = findViewById(R.id.tv_mes)
@@ -85,8 +99,6 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
         btnProximo.setOnClickListener {
             calendar.add(Calendar.MONTH, 1)
             atualizarCalendario()
-            selectedDate = calendar.time
-            buscarAgendamentosParaData(selectedDate!!)
         }
     }
 
@@ -98,9 +110,13 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
             navigateToAgendamento(this)
         }
         findViewById<ImageView>(R.id.icon_calendar)?.setOnClickListener {
+
         }
         findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
             navigateToCadastroCliente(this)
+        }
+        findViewById<ImageView>(R.id.icon_user)?.setOnClickListener {
+            navigateToPerfilUsuario(this)
         }
     }
 
@@ -185,8 +201,8 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
         listaAgendamentosRecyclerView.layoutManager = LinearLayoutManager(this)
         agendamentoAdapter = AgendamentoAdapter(mutableListOf(), this)
         listaAgendamentosRecyclerView.adapter = agendamentoAdapter
-
     }
+
     override fun onAgendamentoClick(agendamentoItem: AgendamentoItem) {
         Log.d("Agenda", "Agendamento clicado: $agendamentoItem")
         atualizarEstadoBotoesAcao()
@@ -228,17 +244,31 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
             return
         }
 
+        val currentSessionToken = sessionToken
+        if (currentSessionToken == null) {
+            mostrarToast("Erro: Token de autenticação não encontrado. Faça login novamente.")
+            navigateToLogin(this)
+            finish()
+            return
+        }
+
         lifecycleScope.launch {
-            val resultado = supabaseClient.deletarAgendamentos(idsSelecionados)
-            if (resultado) {
-                Log.d("Agenda", "Agendamentos excluídos com sucesso!")
-                mostrarToast("Agendamentos excluídos")
-                agendamentoAdapter.clearSelection()
-                selectedDate?.let { buscarAgendamentosParaData(it) }
-                atualizarEstadoBotoesAcao()
-            } else {
-                Log.e("Agenda", "Erro ao excluir agendamentos.")
-                mostrarToast("Erro ao excluir agendamentos")
+            try {
+
+                val resultado = supabaseClient.deletarAgendamentos(idsSelecionados)
+                if (resultado) {
+                    Log.d("Agenda", "Agendamentos excluídos com sucesso!")
+                    mostrarToast("Agendamentos excluídos")
+                    agendamentoAdapter.clearSelection()
+                    selectedDate?.let { buscarAgendamentosParaData(it) }
+                    atualizarEstadoBotoesAcao()
+                } else {
+                    Log.e("Agenda", "Erro ao excluir agendamentos.")
+                    mostrarToast("Erro ao excluir agendamentos")
+                }
+            } catch (e: Exception) {
+                Log.e("Agenda", "Exceção ao excluir agendamentos: ${e.message}", e)
+                mostrarToast("Erro ao excluir agendamentos: ${e.message}")
             }
         }
     }
@@ -267,7 +297,7 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
                 mostrarToast("Agendamento não encontrado.")
             }
         } else if (idsSelecionados.isEmpty()) {
-            mostrarToast("Por favor, selecione pelo um agendamento para compartilhar.")
+            mostrarToast("Por favor, selecione um agendamento para compartilhar.")
         } else {
             mostrarToast("Por favor, selecione apenas um agendamento para compartilhar.")
             agendamentoAdapter.clearSelection()
@@ -275,21 +305,30 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
         }
     }
 
-        private fun buscarAgendamentosParaData(data: Date) {
+    private fun buscarAgendamentosParaData(data: Date) {
+        val currentSessionToken = sessionToken
+        if (currentSessionToken == null) {
+            Log.e("Agenda", "Token de sessão é nulo ao buscar agendamentos. Redirecionando para login.")
+            Toast.makeText(this, "Erro de autenticação. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
+            navigateToLogin(this)
+            finish()
+            return
+        }
+
         coroutineScope.launch {
             val listaAgendamentoItems = mutableListOf<AgendamentoItem>()
             try {
                 val dataFormatadaParaSupabase = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(data)
 
-                val agendamentosSupabase: List<AgendamentoSupabase> = supabaseClient.getAgendamentosPorData(dataFormatadaParaSupabase)
+                val agendamentosSupabase: List<AgendamentoSupabase> = supabaseClient.getAgendamentosPorData(dataFormatadaParaSupabase, null, currentSessionToken)
                 Log.d("Agenda", "Agendamentos para a data $dataFormatadaParaSupabase carregados: $agendamentosSupabase")
 
                 for (agendamentoSupabase in agendamentosSupabase) {
-                    val cliente: Cliente? = supabaseClient.getClientePorId(agendamentoSupabase.clienteId)
+                    val cliente: Cliente? = supabaseClient.getClientePorId(agendamentoSupabase.clienteId, currentSessionToken)
                     val nomeCliente = cliente?.nome ?: "Cliente não encontrado"
 
                     val profissionalUuid = agendamentoSupabase.profissionalId
-                    val profissionalProfile: Profile? = supabaseClient.getProfileById(profissionalUuid)
+                    val profissionalProfile: Profile? = supabaseClient.getProfileById(profissionalUuid, currentSessionToken)
                     val nomeDoProfissionalExibicao = profissionalProfile?.nome ?: "Profissional não encontrado"
 
                     listaAgendamentoItems.add(
@@ -304,8 +343,20 @@ class Agenda : AppCompatActivity(), OnAgendamentoClickListener {
                     )
                 }
             } catch (e: Exception) {
-                Log.e("Agenda", "Erro ao carregar agendamentos: ${e.message}")
-                mostrarToast("Erro ao carregar agendamentos.")
+                Log.e("Agenda", "Erro ao carregar agendamentos: ${e.message}", e)
+                Toast.makeText(this@Agenda, "Erro ao carregar agendamentos: ${e.message}", Toast.LENGTH_LONG).show()
+                if (e.message?.contains("401 Unauthorized") == true || e.message?.contains("JWSError") == true) {
+                    Log.e("Agenda", "Erro de autenticação (401 Unauthorized / JWSError). Deslogando usuário.")
+                    val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+                    with(sharedPreferences.edit()) {
+                        remove("user_id")
+                        remove("session_token")
+                        apply()
+                    }
+                    Toast.makeText(this@Agenda, "Sessão expirada. Faça login novamente.", Toast.LENGTH_LONG).show()
+                    navigateToLogin(this@Agenda)
+                    finish()
+                }
             }
             agendamentoAdapter.atualizarLista(listaAgendamentoItems)
             atualizarEstadoBotoesAcao()

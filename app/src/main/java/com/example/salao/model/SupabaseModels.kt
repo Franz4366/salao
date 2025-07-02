@@ -50,5 +50,15 @@ data class Profile(
     val id: String,
     @SerialName("nome") val nome: String,
     @SerialName("cargo") val cargo: String? = null,
-    @SerialName("photo_url") val fotoUrl: String? = null
+    @SerialName("photo_url") val fotoUrl: String? = null,
+    @SerialName("telefone") val telefone: String? = null,
+    @SerialName("email") val email: String? = null
+)
+
+@Serializable
+data class ProfileUpdate(
+    @SerialName("nome") val nome: String,
+    @SerialName("telefone") val telefone: String? = null,
+    @SerialName("email") val email: String? = null,
+    @SerialName("cargo") val cargo: String? = null
 )

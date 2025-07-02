@@ -35,6 +35,6 @@
     <string name="Tirar_Print">Compartilhar</string>
     <string name="hh_mm">HH:MM</string>
     <string name="alexandra" />
-
-
+    <string name="configuracoes">Configurações</string>
+    <string name="conta">Conta</string>
 </resources>

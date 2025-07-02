@@ -1,5 +1,6 @@
 package com.example.salao
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -10,10 +11,6 @@ import androidx.lifecycle.lifecycleScope
 import com.example.salao.network.SupabaseAuthClient
 import kotlinx.coroutines.launch
 import com.example.salao.utils.esconderBarrasDoSistema
-import android.widget.EditText
-import android.widget.Button
-import android.widget.ProgressBar
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -24,11 +21,13 @@ class MainActivity : AppCompatActivity() {
 
         esconderBarrasDoSistema(this)
 
-        // Verifica se o usuário já está logado
         val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
-        val isLoggedIn = sharedPreferences.getBoolean("is_logged_in", false)
+        val loggedInUserId = sharedPreferences.getString("user_id", null)
+        val sessionToken = sharedPreferences.getString("session_token", null)
 
-        if (isLoggedIn) {
+        if (loggedInUserId != null && sessionToken != null) {
+            Log.d("MainActivity", "Usuário já logado. Redirecionando para LoginProfissional.")
+
             startActivity(Intent(this, LoginProfissional::class.java))
             finish()
             return
@@ -53,8 +52,9 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope.launch {
                 try {
                     authClient.recoverPassword(email)
-                    Toast.makeText(this@MainActivity, "Email enviado com sucesso!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "Email de recuperação enviado com sucesso! Verifique sua caixa de entrada.", Toast.LENGTH_LONG).show()
                 } catch (e: Exception) {
+                    Log.e("MainActivity", "Erro ao enviar email de recuperação: ${e.message}", e)
                     Toast.makeText(this@MainActivity, "Erro ao enviar email: ${e.message}", Toast.LENGTH_LONG).show()
                 } finally {
                     progressBar.visibility = View.GONE
@@ -78,26 +78,28 @@ class MainActivity : AppCompatActivity() {
 
             lifecycleScope.launch {
                 try {
-                    val result = authClient.login(email, password)
+                    val authResponse = authClient.login(email, password)
                     Toast.makeText(this@MainActivity, "Login realizado com sucesso!", Toast.LENGTH_LONG).show()
 
-                    // Salvar o estado de login no SharedPreferences
-                    val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
-                    val editor = sharedPreferences.edit()
-                    editor.putBoolean("is_logged_in", true)
-                    editor.putString("user_email", emailEditText.text.toString())
-                    editor.putString("user_id", result.user.id) // Salvar o ID do usuário
-                    editor.apply()
+                    val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+                    with(sharedPreferences.edit()) {
+                        putString("user_id", authResponse.user.id)
+                        putString("session_token", authResponse.access_token)
 
-                    // Navegar para a próxima tela após o login bem-sucedido
+                        apply()
+                    }
+
+                    Log.d("MainActivity", "Dados de login salvos. User ID: ${authResponse.user.id}, Token salvo.")
+
+
                     startActivity(Intent(this@MainActivity, LoginProfissional::class.java))
                     finish()
 
                 } catch (e: Exception) {
-                    Log.e("LOGIN", "Erro: ${e.message}")
+                    Log.e("MainActivity", "Erro durante o login: ${e.message}", e)
                     Toast.makeText(this@MainActivity, "Erro ao fazer login: ${e.message}", Toast.LENGTH_LONG).show()
                 } finally {
-                    progressBar.visibility = ProgressBar.INVISIBLE
+                    progressBar.visibility = View.INVISIBLE
                     loginButton.isEnabled = true
                 }
             }

@@ -1,6 +1,7 @@
 [versions]
 agp = "8.10.1"
 appcompat = "1.7.0"
+appcompatVersion = "1.7.1"
 cardview = "1.0.0"
 coilCompose = "3.2.0"
 coreKtx = "1.16.0"
@@ -18,10 +19,13 @@ playServicesAuth = "21.3.0"
 activityVersion = "1.10.1"
 profileinstaller = "1.4.1"
 startupRuntime = "1.2.0"
+navigationFragmentKtx = "2.9.0"
+navigationUiKtx = "2.9.0"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activity" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+androidx-appcompat-v171 = { module = "androidx.appcompat:appcompat", version.ref = "appcompatVersion" }
 androidx-cardview = { module = "androidx.cardview:cardview", version.ref = "cardview" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
@@ -41,6 +45,8 @@ material = { module = "com.google.android.material:material", version.ref = "mat
 picasso = { module = "com.squareup.picasso:picasso", version.ref = "picasso" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activityVersion" }
+androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navigation-fragment-ktx", version.ref = "navigationFragmentKtx" }
+androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "navigationUiKtx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
