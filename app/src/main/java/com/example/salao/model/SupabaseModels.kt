@@ -60,5 +60,16 @@ data class ProfileUpdate(
     @SerialName("nome") val nome: String,
     @SerialName("telefone") val telefone: String? = null,
     @SerialName("email") val email: String? = null,
-    @SerialName("cargo") val cargo: String? = null
+    @SerialName("cargo") val cargo: String? = null,
+    @SerialName("photo_url") val fotoUrl: String? = null
+
+)
+
+data class AgendamentoItem(
+    val id: Int?,
+    val clienteNome: String,
+    val data: String,
+    val hora: String,
+    val profissionalNome: String,
+    val comentario: String?
 )

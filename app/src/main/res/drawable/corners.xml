@@ -2,14 +2,12 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
 
-    <!-- Cor de fundo -->
+
     <solid android:color="@color/grey" />
 
-    <!-- Arredondamento dos cantos -->
     <corners android:radius="24dp" />
 
-    <!-- Borda opcional -->
     <stroke
         android:width="2dp"
-        android:color="@color/black" /> <!-- Cor da borda -->
+        android:color="@color/black" />
 </shape>

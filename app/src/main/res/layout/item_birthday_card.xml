@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/birthday_card_root"
+    android:layout_width="345dp"
+    android:layout_height="134dp"
+    android:layout_marginStart="9dp"
+    android:layout_marginEnd="9dp"
+    android:layout_marginTop="23dp"
+    android:layout_marginBottom="20dp"
+    app:cardBackgroundColor="@color/orange"
+    app:cardCornerRadius="30dp"
+    app:cardElevation="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextView
+            android:id="@+id/birthday_client_name"
+            android:layout_width="176dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="21dp"
+            android:layout_marginTop="33dp"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:text="Hoje é o aniversario de [Nome do Cliente]!"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/birthday_girl_image"
+            android:layout_width="149dp"
+            android:layout_height="132dp"
+            android:layout_marginEnd="0dp"
+            android:layout_marginTop="0dp"
+            android:src="@drawable/girl"
+            android:contentDescription="Imagem de uma pessoa em aniversário"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+        <Button
+            android:id="@+id/send_message_button"
+            android:layout_width="150dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="34dp"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/rectangle_5"
+            android:text="@string/enviar"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.cardview.widget.CardView>

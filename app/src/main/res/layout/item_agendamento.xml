@@ -15,9 +15,11 @@
         android:textSize="16sp"
         android:textStyle="bold"
         android:textColor="@color/black"
-        android:layout_marginEnd="10dp"
+        android:layout_marginEnd="18dp"
         android:layout_gravity="center"
-        android:text="@string/hh_mm"/> <LinearLayout
+        android:text="@string/hh_mm"/>
+
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"

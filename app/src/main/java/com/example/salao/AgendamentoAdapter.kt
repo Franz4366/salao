@@ -43,19 +43,10 @@ class AgendamentoAdapter(
     @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: AgendamentoViewHolder, position: Int) {
         val agendamento = agendamentos[position]
-        val isSelected = agendamento.id != null && selectedItemsIds.contains(agendamento.id)
 
-        val backgroundColorRes = if (selectedItemsIds.contains(agendamento.id)) {
-            R.color.selected_item_background
-        } else {
-            R.color.default_item_background
-        }
-        holder.itemView.setBackgroundColor(
-            ContextCompat.getColor(
-                holder.itemView.context,
-                backgroundColorRes
-            )
-        )
+        holder.itemView.isSelected = agendamento.id != null && selectedItemsIds.contains(agendamento.id)
+
+
         holder.tvClienteNome.text = agendamento.clienteNome
         holder.tvProfissional.text = agendamento.profissionalNome
         holder.tvObservacao.text = agendamento.comentario ?: ""

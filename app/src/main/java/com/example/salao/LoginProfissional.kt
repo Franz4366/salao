@@ -26,10 +26,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.example.salao.model.Profile
+import com.example.salao.model.Cliente
+import com.example.salao.model.AgendamentoSupabase
+import com.example.salao.utils.BirthdayClientsAdapter
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 class LoginProfissional : AppCompatActivity() {
 
@@ -40,6 +47,7 @@ class LoginProfissional : AppCompatActivity() {
     private var sessionToken: String? = null
     private lateinit var agendamentoAdapter: AgendamentoAdapter
     private lateinit var recyclerView: RecyclerView
+    private lateinit var birthdayClientsRecyclerView: RecyclerView // Seu novo RecyclerView para aniversariantes
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +55,11 @@ class LoginProfissional : AppCompatActivity() {
         setContentView(R.layout.activity_login_profissional)
         esconderBarrasDoSistema(this)
 
+        birthdayClientsRecyclerView = findViewById(R.id.birthday_clients_recycler_view)
+        birthdayClientsRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+
         nomeProfissionalTextView = findViewById(R.id.nome_profissional)
+
         recyclerView = findViewById(R.id.lista_agendamentos_recycler_view)
         recyclerView.layoutManager = LinearLayoutManager(this)
         agendamentoAdapter = AgendamentoAdapter(mutableListOf(), object : OnAgendamentoClickListener {
@@ -63,58 +75,15 @@ class LoginProfissional : AppCompatActivity() {
         if (loggedInUserId != null && sessionToken != null) {
             Log.d("LoginProfissional", "ID do usuário e Token encontrados. Buscando dados...")
             coroutineScope.launch {
-                val listaAgendamentoItems = mutableListOf<AgendamentoItem>()
                 try {
                     buscarPerfilDoUsuario(loggedInUserId!!, sessionToken!!)
-
-                    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                    val dataAtual = dateFormat.format(Date())
-
-                    val agendamentosSupabase = supabaseClient.getAgendamentosPorData(dataAtual, loggedInUserId, sessionToken!!)
-                    Log.d("LoginProfissional", "Agendamentos do usuário: $loggedInUserId: $agendamentosSupabase")
-
-                    if (agendamentosSupabase.isEmpty()) {
-                        Log.d("LoginProfissional", "Nenhum agendamento encontrado para a data atual.")
-                        agendamentoAdapter.atualizarLista(emptyList())
-
-                    } else {
-                        agendamentosSupabase.forEach { agendamentoSupabase ->
-                            val cliente = supabaseClient.getClientePorId(agendamentoSupabase.clienteId, sessionToken!!)
-                            val nomeCliente = cliente?.nome ?: "Cliente não encontrado"
-                            val profissionalUuid = agendamentoSupabase.profissionalId
-
-                            val profissionalProfile = supabaseClient.getProfileById(profissionalUuid, sessionToken!!)
-                            val nomeDoProfissionalExibicao = profissionalProfile?.nome ?: "Profissional não encontrado"
-
-                            val fullDateTime = "${agendamentoSupabase.dataAgendamento} ${agendamentoSupabase.horaAgendamento}"
-                            val parsedDate: Date? = try {
-                                SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).parse(fullDateTime)
-                            } catch (e: Exception) {
-                                Log.e("LoginProfissional", "Erro ao parsear data e hora: $fullDateTime", e)
-                                null
-                            }
-
-                            if (parsedDate != null) {
-                                listaAgendamentoItems.add(
-                                    AgendamentoItem(
-                                        id = agendamentoSupabase.id,
-                                        clienteNome = nomeCliente,
-                                        data = agendamentoSupabase.dataAgendamento,
-                                        hora = agendamentoSupabase.horaAgendamento,
-                                        profissionalNome = nomeDoProfissionalExibicao,
-                                        comentario = agendamentoSupabase.comentario
-                                    )
-                                )
-                            } else {
-                                Log.e("LoginProfissional", "Agendamento ignorado devido a data/hora inválida: $fullDateTime")
-                            }
-                        }
-                    }
-                    agendamentoAdapter.atualizarLista(listaAgendamentoItems)
+                    fetchAgendamentos()
+                    fetchBirthdayClients()
                 } catch (e: Exception) {
-                    Log.e("LoginProfissional", "Erro ao buscar agendamentos ou perfil: ${e.message}", e)
-                    Toast.makeText(this@LoginProfissional, "Erro ao carregar dados: ${e.message}", Toast.LENGTH_LONG).show()
-                    nomeProfissionalTextView.text = "Erro ao carregar nome ou agendamentos"
+                    Log.e("LoginProfissional", "Erro durante a inicialização: ${e.message}", e)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@LoginProfissional, "Erro ao carregar dados iniciais: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
                     handleAuthenticationError(e)
                 }
             }
@@ -141,33 +110,136 @@ class LoginProfissional : AppCompatActivity() {
 
     private suspend fun buscarPerfilDoUsuario(userId: String, token: String) {
         try {
-            val response: HttpResponse = supabaseClient.client.get("${supabaseClient.supabaseUrl}/rest/v1/profiles") {
-                parameter("select", "id, nome, photo_url")
-                parameter("id", "eq.$userId")
-                header("Accept", "application/json")
-                header("Authorization", "Bearer $token")
+            val profile = supabaseClient.getProfileById(userId, token)
+            withContext(Dispatchers.Main) {
+                if (profile != null) {
+                    nomeProfissionalTextView.text = profile.nome ?: "Nome não encontrado"
+                    Log.d("LoginProfissional", "Perfil do usuário carregado: ${profile.nome}")
+                } else {
+                    nomeProfissionalTextView.text = "Usuário não encontrado"
+                    Log.w("LoginProfissional", "Nenhum perfil encontrado para o ID: $userId")
+                    handleAuthenticationError(Exception("Perfil não encontrado para o usuário logado."))
+                }
             }
-
-            if (!response.status.isSuccess()) {
-                val errorText = response.bodyAsText()
-                throw Exception("Erro ao buscar perfil do usuário: ${response.status.value} - $errorText")
-            }
-
-            val profiles: List<Profile> = response.body<List<Profile>>()
-            if (profiles.isNotEmpty()) {
-                val userProfile = profiles[0]
-                nomeProfissionalTextView.text = userProfile.nome ?: "Nome não encontrado"
-                Log.d("LoginProfissional", "Perfil do usuário carregado: ${userProfile.nome}")
-            } else {
-                nomeProfissionalTextView.text = "Usuário não encontrado"
-                Log.w("LoginProfissional", "Nenhum perfil encontrado para o ID: $userId")
-                handleAuthenticationError(Exception("Perfil não encontrado para o usuário logado."))
-            }
-
         } catch (e: Exception) {
             Log.e("LoginProfissional", "Erro ao buscar perfil do usuário: ${e.message}", e)
-            nomeProfissionalTextView.text = "Erro ao carregar nome"
-            handleAuthenticationError(e)
+            withContext(Dispatchers.Main) {
+                nomeProfissionalTextView.text = "Erro ao carregar nome"
+                handleAuthenticationError(e)
+            }
+        }
+    }
+
+    private suspend fun fetchAgendamentos() {
+        val listaAgendamentoItems = mutableListOf<AgendamentoItem>()
+        try {
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val dataAtual = dateFormat.format(Date())
+
+            val currentSessionToken = sessionToken
+            if (currentSessionToken == null) {
+                Log.e("LoginProfissional", "Token de sessão é nulo. Não é possível buscar agendamentos.")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@LoginProfissional, "Sessão inválida. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
+                }
+                return
+            }
+
+            val agendamentosSupabase = supabaseClient.getAgendamentosPorData(dataAtual, loggedInUserId, currentSessionToken)
+            Log.d("LoginProfissional", "Agendamentos para o usuário $loggedInUserId na data atual: $agendamentosSupabase")
+
+            if (agendamentosSupabase.isEmpty()) {
+                Log.d("LoginProfissional", "Nenhum agendamento encontrado para a data atual.")
+                withContext(Dispatchers.Main) {
+                    agendamentoAdapter.atualizarLista(emptyList())
+                }
+            } else {
+                agendamentosSupabase.forEach { agendamentoSupabase ->
+                    val cliente = supabaseClient.getClientePorId(agendamentoSupabase.clienteId, currentSessionToken)
+                    val nomeCliente = cliente?.nome ?: "Cliente não encontrado"
+
+                    val profissionalProfile = supabaseClient.getProfileById(agendamentoSupabase.profissionalId, currentSessionToken)
+                    val nomeDoProfissionalExibicao = profissionalProfile?.nome ?: "Profissional não encontrado"
+
+                    val fullDateTime = "${agendamentoSupabase.dataAgendamento} ${agendamentoSupabase.horaAgendamento}"
+                    val parsedDate: Date? = try {
+                        SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).parse(fullDateTime)
+                    } catch (e: Exception) {
+                        Log.e("LoginProfissional", "Erro ao parsear data e hora do agendamento: $fullDateTime", e)
+                        null
+                    }
+
+                    if (parsedDate != null) {
+                        listaAgendamentoItems.add(
+                            AgendamentoItem(
+                                id = agendamentoSupabase.id,
+                                clienteNome = nomeCliente,
+                                data = agendamentoSupabase.dataAgendamento,
+                                hora = agendamentoSupabase.horaAgendamento,
+                                profissionalNome = nomeDoProfissionalExibicao,
+                                comentario = agendamentoSupabase.comentario
+                            )
+                        )
+                    } else {
+                        Log.e("LoginProfissional", "Agendamento ignorado devido a data/hora inválida: $fullDateTime")
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    agendamentoAdapter.atualizarLista(listaAgendamentoItems)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("LoginProfissional", "Erro ao buscar agendamentos: ${e.message}", e)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@LoginProfissional, "Erro ao carregar agendamentos: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private suspend fun fetchBirthdayClients() {
+        val currentSessionToken = sessionToken
+        if (currentSessionToken == null) {
+            Log.e("LoginProfissional", "Token de sessão é nulo. Não é possível buscar aniversariantes.")
+            return
+        }
+
+        try {
+            val allClients = supabaseClient.getAllClientes(currentSessionToken)
+            Log.d("LoginProfissional", "Total de clientes encontrados para verificar aniversário: ${allClients.size}")
+
+            val today = LocalDate.now()
+            val birthdayClients = allClients.filter { client ->
+                client.dataNascimento?.let { dobString ->
+                    try {
+
+                        val parsedDate = LocalDate.parse(dobString)
+                        Log.d("LoginProfissional", "Verificando aniversário para ${client.nome}: ${parsedDate.monthValue}/${parsedDate.dayOfMonth} (Data DB: $dobString)")
+                        parsedDate.monthValue == today.monthValue && parsedDate.dayOfMonth == today.dayOfMonth
+                    } catch (e: DateTimeParseException) {
+                        Log.e("LoginProfissional", "Erro ao analisar data de nascimento para ${client.nome} (Data: '$dobString'): ${e.message}")
+                        false
+                    } catch (e: Exception) {
+                        Log.e("LoginProfissional", "Erro inesperado ao processar data de nascimento para ${client.nome} (Data: '$dobString'): ${e.message}")
+                        false
+                    }
+                } ?: false
+            }
+
+            Log.d("LoginProfissional", "Aniversariantes encontrados hoje: ${birthdayClients.size}")
+
+            withContext(Dispatchers.Main) {
+                if (birthdayClients.isNotEmpty()) {
+                    val adapter = BirthdayClientsAdapter(birthdayClients)
+                    birthdayClientsRecyclerView.adapter = adapter
+                } else {
+                    Log.d("LoginProfissional", "Nenhum aniversariante hoje.")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("LoginProfissional", "Erro ao buscar clientes aniversariantes: ${e.message}", e)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@LoginProfissional, "Erro ao carregar aniversariantes: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -185,7 +257,6 @@ class LoginProfissional : AppCompatActivity() {
             navigateToCadastroCliente(this)
         }
         findViewById<ImageView>(R.id.icon_user)?.setOnClickListener {
-
             navigateToPerfilUsuario(this)
         }
     }

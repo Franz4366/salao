@@ -10,6 +10,15 @@
         android:protectionLevel="signature" />
     <uses-permission android:name="com.example.salao.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
 
+    <queries>
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
 
     <application
         android:allowBackup="true"

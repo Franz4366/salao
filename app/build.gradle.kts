@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("org.jetbrains.kotlin.plugin.serialization") version libs.versions.kotlin.get()
-    alias(libs.plugins.jetbrains.kotlin.compose.compiler)
 }
 
 android {
@@ -31,6 +30,15 @@ android {
         println("WARNING: local.properties file not found. Make sure it exists in the project root.")
     }
 
+    signingConfigs {
+        create("releaseConfig") {
+            storeFile = file(localProperties.getProperty("KEYSTORE_PATH"))
+            storePassword = localProperties.getProperty("KEYSTORE_PASSWORD")
+            keyAlias = localProperties.getProperty("KEY_ALIAS")
+            keyPassword = localProperties.getProperty("KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -38,12 +46,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Chamadas buildConfigField para o tipo 'release'
             buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL", "")}\"")
             buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "")}\"")
+
+            signingConfig = signingConfigs.getByName("releaseConfig")
         }
         debug {
-            // Chamadas buildConfigField para o tipo 'debug'
             buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL", "")}\"")
             buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "")}\"")
         }
@@ -58,7 +66,6 @@ android {
         jvmTarget = "11"
     }
     buildFeatures {
-        compose = true
         buildConfig = true
     }
 
@@ -94,10 +101,10 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.kotlinx.serialization.json)
 
-    implementation(libs.coil.compose)
     implementation (libs.picasso)
     implementation (libs.androidx.cardview)
     implementation (libs.androidx.startup.runtime)
     implementation (libs.androidx.profileinstaller)
     implementation(libs.androidx.appcompat.v171)
+    implementation(libs.circleimageview)
 }

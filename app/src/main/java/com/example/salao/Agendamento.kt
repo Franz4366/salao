@@ -197,7 +197,6 @@ class Agendamento : AppCompatActivity() {
 
                         if (sucesso) {
                             Log.d("Agendamento", "Agendamento criado com sucesso! Iniciando DetalhesAgendamentoActivity.")
-                            limparCamposAgendamento()
 
                             val intent = Intent(this@Agendamento, DetalhesAgendamentoActivity::class.java).apply {
                                 putExtra("clienteNome", cliente.nome)
@@ -208,6 +207,7 @@ class Agendamento : AppCompatActivity() {
                             }
                             startActivity(intent)
                             finish()
+                            limparCamposAgendamento()
                         } else {
                             exibirMensagem("Erro ao realizar o agendamento.")
                         }

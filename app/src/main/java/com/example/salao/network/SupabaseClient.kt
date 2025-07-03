@@ -79,7 +79,7 @@ class SupabaseClient {
                 parameter("select", "id, nome, telefone, email, photo_url, cargo")
                 parameter("id", "eq.$profileId")
                 header("Accept", "application/json")
-                header("Authorization", "Bearer $userJwtToken") // Usa o token do usuário logado
+                header("Authorization", "Bearer $userJwtToken")
             }
             Log.d("SupabaseData", "Raw Supabase Response (Status): ${response.status}")
 
@@ -133,7 +133,7 @@ class SupabaseClient {
                 if (profissionalId != null) {
                     parameter("profissional", "eq.$profissionalId")
                 }
-                header("Authorization", "Bearer $userJwtToken") // <-- Adicionado o cabeçalho de autorização
+                header("Authorization", "Bearer $userJwtToken")
             }
             Log.d("SupabaseClient", "Resposta do Supabase (status): ${response.status}")
 
@@ -151,14 +151,13 @@ class SupabaseClient {
         }
     }
 
-    // MÉTODO getClientePorNome: AGORA REQUER userJwtToken (se RLS exigir)
     suspend fun getClientePorNome(nome: String, userJwtToken: String): Cliente? {
         return try {
             val response: HttpResponse = client.get("$supabaseUrl/rest/v1/clientes") {
                 parameter("select", "id, nome, telefone, email, data_nascimento")
                 parameter("nome", "eq.$nome")
                 parameter("limit", 1)
-                header("Authorization", "Bearer $userJwtToken") // <-- Adicionado o cabeçalho de autorização
+                header("Authorization", "Bearer $userJwtToken")
             }
 
             if (response.status.value in 200..299) {
@@ -226,7 +225,7 @@ class SupabaseClient {
         horaAgendamento: String,
         profissionalId: String,
         comentario: String? = null,
-        userJwtToken: String // <-- AGORA REQUER userJwtToken
+        userJwtToken: String
     ): Boolean {
         return try {
             val agendamento = AgendamentoSupabase(
@@ -287,8 +286,7 @@ class SupabaseClient {
             Log.d("deletarAgendamentos", "URL da requisição DELETE: $urlFinal")
             val response = client.delete(urlFinal) {
                 contentType(ContentType.Application.Json)
-                // Se deletar agendamentos requer autenticação de usuário logado
-                // header("Authorization", "Bearer SEU_TOKEN_DE_SESSAO")
+               // header("Authorization", "Bearer $userJwtToken")
             }
             Log.d("deletarAgendamentos", "Resposta da exclusão (status): ${response.status}")
             val responseBody = response.bodyAsText()
@@ -297,6 +295,30 @@ class SupabaseClient {
         } catch (e: Exception) {
             Log.e("SupabaseClient", "Erro ao deletar agendamentos: ${e.message}")
             return false
+        }
+    }
+
+    suspend fun getAllClientes(userJwtToken: String): List<Cliente> {
+        return try {
+            Log.d("SupabaseClient", "Buscando todos os clientes no Supabase...")
+            val response: HttpResponse = client.get("$supabaseUrl/rest/v1/clientes") {
+                parameter("select", "id, nome, telefone, email, data_nascimento")
+                header("Authorization", "Bearer $userJwtToken")
+            }
+            Log.d("SupabaseClient", "Resposta ao buscar todos os clientes (status): ${response.status}")
+
+            if (response.status.isSuccess()) {
+                val rawBody = response.bodyAsText()
+                Log.d("SupabaseClient", "Raw JSON Response (All Clients): $rawBody")
+                return Json.decodeFromString<List<Cliente>>(rawBody)
+            } else {
+                val errorBody = response.bodyAsText()
+                Log.e("SupabaseClient", "Erro ao buscar todos os clientes: ${response.status.value} - $errorBody")
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Erro ao buscar todos os clientes: ${e.message}", e)
+            emptyList()
         }
     }
 }
