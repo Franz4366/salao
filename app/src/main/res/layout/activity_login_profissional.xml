@@ -41,6 +41,17 @@
         android:text="@string/alexandra"
         android:textAppearance="@style/alexandra"/>
 
+    <de.hdodenhof.circleimageview.CircleImageView
+        android:id="@+id/foto_user"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        app:layout_constraintStart_toStartOf="@id/main"
+        app:layout_constraintTop_toTopOf="@id/main"
+        android:layout_marginStart="260dp"
+        android:layout_marginTop="40dp"
+        android:src="@drawable/ellipse_2" app:civ_border_width="2dp" app:civ_border_color="@color/black" />
+
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/birthday_clients_recycler_view"
         android:layout_width="match_parent"
@@ -52,6 +63,20 @@
         app:layout_constraintEnd_toEndOf="@id/main"
         app:layout_constraintTop_toTopOf="@id/main"
         tools:listitem="@layout/item_birthday_card" />
+
+    <TextView
+        android:id="@+id/tv_no_birthdays_today"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Não há aniversariantes hoje."
+        android:textSize="16sp"
+        android:textColor="@android:color/darker_gray"
+        android:gravity="center"
+        android:visibility="gone" app:layout_constraintStart_toStartOf="@id/birthday_clients_recycler_view"
+        app:layout_constraintEnd_toEndOf="@id/birthday_clients_recycler_view"
+        app:layout_constraintTop_toTopOf="@id/birthday_clients_recycler_view"
+        app:layout_constraintBottom_toBottomOf="@id/birthday_clients_recycler_view"
+        />
 
     <TextView
         android:id="@+id/sua_agenda"
@@ -68,11 +93,28 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/lista_agendamentos_recycler_view"
         android:layout_width="match_parent"
-        android:layout_height="320dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="6dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginEnd="6dp"
         app:layout_constraintStart_toStartOf="@id/main"
         app:layout_constraintEnd_toEndOf="@id/main"
         app:layout_constraintTop_toBottomOf="@id/sua_agenda"
-        android:layout_marginTop="1dp"/>
+        app:layout_constraintBottom_toTopOf="@id/group_35"
+        tools:listitem="@layout/item_agendamento"/>
+
+    <TextView
+        android:id="@+id/tv_no_agendamentos_today"
+        android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Não há agendamentos para hoje."
+        android:textSize="16sp"
+        android:textColor="@android:color/darker_gray"
+        android:gravity="center"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="@id/lista_agendamentos_recycler_view"
+        app:layout_constraintEnd_toEndOf="@id/lista_agendamentos_recycler_view"
+        app:layout_constraintTop_toTopOf="@id/lista_agendamentos_recycler_view"
+        app:layout_constraintBottom_toBottomOf="@id/lista_agendamentos_recycler_view"
+        />
 
     <FrameLayout
         android:id="@+id/group_35"
