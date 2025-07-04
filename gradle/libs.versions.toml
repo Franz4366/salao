@@ -1,6 +1,6 @@
 [versions]
 agp = "8.10.1"
-appcompat = "1.7.0"
+appcompat = "1.7.1"
 appcompatVersion = "1.7.1"
 cardview = "1.0.0"
 circleimageview = "3.1.0"
@@ -11,7 +11,7 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 activity = "1.10.1"
 constraintlayout = "2.2.1"
-kotlinxSerializationJson = "1.8.0"
+kotlinxSerializationJson = "1.8.1"
 ktorClientCore = "2.3.11"
 material = "1.12.0"
 picasso = "2.8"
@@ -19,8 +19,8 @@ playServicesAuth = "21.3.0"
 activityVersion = "1.10.1"
 profileinstaller = "1.4.1"
 startupRuntime = "1.2.0"
-navigationFragmentKtx = "2.9.0"
-navigationUiKtx = "2.9.0"
+navigationFragmentKtx = "2.9.1"
+navigationUiKtx = "2.9.1"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activity" }

@@ -21,7 +21,6 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-
 import com.example.salao.model.NovoCliente
 import com.example.salao.model.Cliente
 import com.example.salao.model.AgendamentoSupabase
