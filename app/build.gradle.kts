@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("org.jetbrains.kotlin.plugin.serialization") version libs.versions.kotlin.get()
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -107,4 +108,8 @@ dependencies {
     implementation (libs.androidx.profileinstaller)
     implementation(libs.androidx.appcompat.v171)
     implementation(libs.circleimageview)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.messaging)
 }

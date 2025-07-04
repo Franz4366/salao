@@ -2,24 +2,33 @@ package com.example.salao
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.salao.network.SupabaseAuthClient
 import kotlinx.coroutines.launch
 import com.example.salao.utils.esconderBarrasDoSistema
+import android.Manifest
 
 class MainActivity : AppCompatActivity() {
 
     private val authClient = SupabaseAuthClient()
+    private val REQUEST_NOTIFICATION_PERMISSION = 100
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         esconderBarrasDoSistema(this)
+
+        requestNotificationPermission()
+        Log.d("MainActivity", "MainActivity onCreate executado.")
 
         val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
         val loggedInUserId = sharedPreferences.getString("user_id", null)
@@ -52,10 +61,18 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope.launch {
                 try {
                     authClient.recoverPassword(email)
-                    Toast.makeText(this@MainActivity, "Email de recuperação enviado com sucesso! Verifique sua caixa de entrada.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Email de recuperação enviado com sucesso! Verifique sua caixa de entrada.",
+                        Toast.LENGTH_LONG
+                    ).show()
                 } catch (e: Exception) {
                     Log.e("MainActivity", "Erro ao enviar email de recuperação: ${e.message}", e)
-                    Toast.makeText(this@MainActivity, "Erro ao enviar email: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Erro ao enviar email: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 } finally {
                     progressBar.visibility = View.GONE
                 }
@@ -79,7 +96,11 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope.launch {
                 try {
                     val authResponse = authClient.login(email, password)
-                    Toast.makeText(this@MainActivity, "Login realizado com sucesso!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Login realizado com sucesso!",
+                        Toast.LENGTH_LONG
+                    ).show()
 
                     val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
                     with(sharedPreferences.edit()) {
@@ -89,7 +110,10 @@ class MainActivity : AppCompatActivity() {
                         apply()
                     }
 
-                    Log.d("MainActivity", "Dados de login salvos. User ID: ${authResponse.user.id}, Token salvo.")
+                    Log.d(
+                        "MainActivity",
+                        "Dados de login salvos. User ID: ${authResponse.user.id}, Token salvo."
+                    )
 
 
                     startActivity(Intent(this@MainActivity, LoginProfissional::class.java))
@@ -97,11 +121,48 @@ class MainActivity : AppCompatActivity() {
 
                 } catch (e: Exception) {
                     Log.e("MainActivity", "Erro durante o login: ${e.message}", e)
-                    Toast.makeText(this@MainActivity, "Erro ao fazer login: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Erro ao fazer login: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
                 } finally {
                     progressBar.visibility = View.INVISIBLE
                     loginButton.isEnabled = true
                 }
+            }
+        }
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    REQUEST_NOTIFICATION_PERMISSION
+                )
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_NOTIFICATION_PERMISSION) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permissão concedida
+                Log.d("MainActivity", "Permissão de notificação concedida")
+            } else {
+                // Permissão negada. Você pode mostrar uma explicação ao usuário, se desejar.
+                Log.d("MainActivity", "Permissão de notificação negada")
             }
         }
     }

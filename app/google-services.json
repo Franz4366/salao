@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "444261831569",
+    "project_id": "salao-f2adc",
+    "storage_bucket": "salao-f2adc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:444261831569:android:f0de65298f7954d0dd8030",
+        "android_client_info": {
+          "package_name": "com.example.salao"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6VBW2mgKCKP-5RMzbOKAHAi0tqRIhV3M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

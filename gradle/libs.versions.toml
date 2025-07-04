@@ -5,6 +5,7 @@ appcompatVersion = "1.7.1"
 cardview = "1.0.0"
 circleimageview = "3.1.0"
 coreKtx = "1.16.0"
+firebaseBom = "33.16.0"
 kotlin = "2.1.20"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -31,6 +32,9 @@ androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx"
 androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
 androidx-startup-runtime = { module = "androidx.startup:startup-runtime", version.ref = "startupRuntime" }
 circleimageview = { module = "de.hdodenhof:circleimageview", version.ref = "circleimageview" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

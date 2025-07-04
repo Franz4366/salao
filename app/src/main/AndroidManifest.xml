@@ -4,21 +4,16 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
-
-    <permission
-        android:name="com.example.salao.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
-        android:protectionLevel="signature" />
-    <uses-permission android:name="com.example.salao.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
-
-    <queries>
-        <package android:name="com.whatsapp" />
-        <package android:name="com.whatsapp.w4b" />
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="https" />
-        </intent>
-    </queries>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/> <queries>
+    <package android:name="com.whatsapp" />
+    <package android:name="com.whatsapp.w4b" />
+    <intent>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="https" />
+    </intent>
+</queries>
 
     <application
         android:allowBackup="true"
@@ -32,6 +27,23 @@
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
         tools:ignore="ObsoleteSdkInt"
         tools:targetApi="31">
+
+        <service
+            android:name=".network.MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".PerfilUsuarioActivity"
@@ -52,15 +64,6 @@
         <activity
             android:name=".LoginProfissional"
             android:exported="false" />
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -92,6 +95,7 @@
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
+
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
