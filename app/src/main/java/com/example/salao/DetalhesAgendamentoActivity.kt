@@ -37,19 +37,6 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
     private lateinit var labelObservacao: TextView
     private lateinit var layoutParaPrint: View
 
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            saveAndShareScreenshot()
-        } else {
-            mostrarToast("Permissão de armazenamento necessária para salvar o print.")
-            if (shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                showPermissionDeniedDialog()
-            }
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_detalhes_agendamento)
@@ -72,7 +59,7 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
         tvCliente.text = clienteNome
 
         try {
-            val inputDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val inputDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
             val outputDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
             val parsedDate: Date? = inputDateFormat.parse(data)
             if (parsedDate != null) {
@@ -81,7 +68,7 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
                 tvDataHora.text = "$data às $hora (Formato inválido)"
             }
         } catch (e: Exception) {
-            Log.e("DetalhesAgendamento", "Erro ao formatar data: ${e.message}")
+            Log.e(TAG, "Erro ao formatar data: ${e.message}")
             tvDataHora.text = "$data às $hora"
         }
 
@@ -109,19 +96,7 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
     }
 
     private fun checkAndRequestPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            saveAndShareScreenshot()
-        } else {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                saveAndShareScreenshot()
-            } else {
-                requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            }
-        }
+        saveAndShareScreenshot()
     }
 
     private fun saveAndShareScreenshot() {
@@ -145,7 +120,7 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
             view.draw(canvas)
             return bitmap
         } catch (e: Exception) {
-            Log.e("DetalhesAgendamento", "Erro ao tirar screenshot: ${e.message}")
+            Log.e(TAG, "Erro ao tirar screenshot: ${e.message}")
             return null
         }
     }
@@ -165,7 +140,7 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
             mostrarToast("Print salvo em: ${file.absolutePath}")
             return file
         } catch (e: IOException) {
-            Log.e("DetalhesAgendamento", "Erro ao salvar bitmap: ${e.message}")
+            Log.e(TAG, "Erro ao salvar bitmap: ${e.message}")
             return null
         }
     }
@@ -178,7 +153,7 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
                 file
             )
         } catch (e: IllegalArgumentException) {
-            Log.e("DetalhesAgendamento", "O arquivo selecionado não pode ser compartilhado: ${e.message}")
+            Log.e(TAG, "O arquivo selecionado não pode ser compartilhado: ${e.message}")
             null
         }
 
@@ -195,24 +170,10 @@ class DetalhesAgendamentoActivity : AppCompatActivity() {
         }
     }
 
-    private fun showPermissionDeniedDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Permissão Negada")
-            .setMessage("Para salvar o print, precisamos da permissão de armazenamento. Por favor, conceda-a nas configurações do aplicativo.")
-            .setPositiveButton("Ir para Configurações") { dialog, _ ->
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                val uri = Uri.fromParts("package", packageName, null)
-                intent.data = uri
-                startActivity(intent)
-                dialog.dismiss()
-            }
-            .setNegativeButton("Cancelar") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .show()
-    }
-
     fun Context.mostrarToast(mensagem: String) {
         Toast.makeText(this, mensagem, Toast.LENGTH_SHORT).show()
+    }
+    companion object {
+        private const val TAG = "DetalhesAgendamentoActivity"
     }
 }

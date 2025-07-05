@@ -13,6 +13,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.salao.network.SupabaseAuthClient
+import com.example.salao.network.SupabaseClient // Importa o SupabaseClient
 import kotlinx.coroutines.launch
 import com.example.salao.utils.esconderBarrasDoSistema
 import android.Manifest
@@ -30,13 +31,18 @@ class MainActivity : AppCompatActivity() {
         requestNotificationPermission()
         Log.d("MainActivity", "MainActivity onCreate executado.")
 
-        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
-        val loggedInUserId = sharedPreferences.getString("user_id", null)
-        val sessionToken = sharedPreferences.getString("session_token", null)
+        // --- ADICIONADO: Inicializa o SupabaseClient com o contexto da aplicação ---
+        // Isso deve ser feito ANTES de qualquer tentativa de obter tokens.
+        SupabaseClient.initClient(applicationContext)
 
-        if (loggedInUserId != null && sessionToken != null) {
-            Log.d("MainActivity", "Usuário já logado. Redirecionando para LoginProfissional.")
+        // --- ALTERADO: Agora verifica o estado de login através do SupabaseClient ---
+        val loggedInUserId = SupabaseClient.getLoggedInUserId()
+        val sessionToken = SupabaseClient.getAccessToken()
+        val refreshToken = SupabaseClient.getRefreshToken() // Também verificamos o refresh token
 
+        if (loggedInUserId != null && sessionToken != null && refreshToken != null) {
+            Log.d("MainActivity", "Usuário já logado. Redirecionando para ProfessionalDashboardActivity.")
+            // --- ALTERADO: Redireciona para ProfessionalDashboardActivity ---
             startActivity(Intent(this, LoginProfissional::class.java))
             finish()
             return
@@ -102,20 +108,19 @@ class MainActivity : AppCompatActivity() {
                         Toast.LENGTH_LONG
                     ).show()
 
-                    val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-                    with(sharedPreferences.edit()) {
-                        putString("user_id", authResponse.user.id)
-                        putString("session_token", authResponse.access_token)
-
-                        apply()
-                    }
+                    // --- ALTERADO: Chama SupabaseClient para salvar os tokens ---
+                    SupabaseClient.saveTokens(
+                        authResponse.access_token,
+                        authResponse.refresh_token, // Certifique-se de que este campo existe em AuthResponse
+                        authResponse.user.id
+                    )
 
                     Log.d(
                         "MainActivity",
-                        "Dados de login salvos. User ID: ${authResponse.user.id}, Token salvo."
+                        "Dados de login salvos via SupabaseClient. User ID: ${authResponse.user.id}, Token salvo."
                     )
 
-
+                    // --- ALTERADO: Redireciona para ProfessionalDashboardActivity ---
                     startActivity(Intent(this@MainActivity, LoginProfissional::class.java))
                     finish()
 

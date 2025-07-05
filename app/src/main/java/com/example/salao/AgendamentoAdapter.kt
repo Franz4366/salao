@@ -18,11 +18,12 @@ interface OnAgendamentoClickListener {
 }
 
 class AgendamentoAdapter(
-    private var agendamentos: MutableList<AgendamentoItem>,
+    private var initialAgendamentos: List<AgendamentoItem>,
     private val clickListener: OnAgendamentoClickListener
 ) : RecyclerView.Adapter<AgendamentoAdapter.AgendamentoViewHolder>() {
 
     private val selectedItemsIds = mutableSetOf<Int>()
+    private val agendamentos: MutableList<AgendamentoItem> = initialAgendamentos.toMutableList()
 
     val listaAgendamentos: List<AgendamentoItem>
         get() = agendamentos
@@ -38,6 +39,10 @@ class AgendamentoAdapter(
         val itemView =
             LayoutInflater.from(parent.context).inflate(R.layout.item_agendamento, parent, false)
         return AgendamentoViewHolder(itemView)
+    }
+
+    companion object {
+        private const val TAG = "AgendamentoAdapter"
     }
 
     @SuppressLint("SetTextI18n")
@@ -96,14 +101,31 @@ class AgendamentoAdapter(
 
     @SuppressLint("NotifyDataSetChanged")
     fun toggleSelection(agendamentoId: Int) {
-        if (selectedItemsIds.contains(agendamentoId)) {
-            selectedItemsIds.remove(agendamentoId)
-            Log.d("AgendamentoAdapter", "Item ${agendamentoId} removido da seleção. Selecionados: $selectedItemsIds")
+        val oldSelectedId = selectedItemsIds.firstOrNull() // Assume only one selection
+
+        if (oldSelectedId == agendamentoId) {
+            // Se o item clicado já estava selecionado, desmarcar
+            selectedItemsIds.clear()
+            Log.d(TAG, "Item ${agendamentoId} desmarcado.")
+            notifyItemChanged(agendamentos.indexOfFirst { it.id == agendamentoId })
         } else {
-            selectedItemsIds.add(agendamentoId)
-            Log.d("AgendamentoAdapter", "Item ${agendamentoId} adicionado à seleção. Selecionados: $selectedItemsIds")
+            // Se um novo item foi clicado ou não havia seleção,
+            // desmarcar o antigo (se houver) e selecionar o novo
+            selectedItemsIds.clear() // Limpa o antigo
+            selectedItemsIds.add(agendamentoId) // Adiciona o novo
+            Log.d(TAG, "Item ${agendamentoId} selecionado. Antigo: $oldSelectedId")
+
+            if (oldSelectedId != null) {
+                val oldPos = agendamentos.indexOfFirst { it.id == oldSelectedId }
+                if (oldPos != RecyclerView.NO_POSITION) {
+                    notifyItemChanged(oldPos)
+                }
+            }
+            val newPos = agendamentos.indexOfFirst { it.id == agendamentoId }
+            if (newPos != RecyclerView.NO_POSITION) {
+                notifyItemChanged(newPos)
+            }
         }
-        notifyDataSetChanged()
     }
 
     @SuppressLint("NotifyDataSetChanged")

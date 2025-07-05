@@ -14,7 +14,7 @@ import com.squareup.picasso.Picasso
 import com.example.salao.com.example.salao.utils.NavigationManager
 import com.example.salao.model.Profile
 import com.example.salao.model.ProfileUpdate
-import com.example.salao.network.SupabaseClient
+import com.example.salao.network.SupabaseClient // Certifique-se de que esta importação está correta
 import com.example.salao.utils.esconderBarrasDoSistema
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
@@ -30,9 +30,11 @@ class PerfilUsuarioActivity : AppCompatActivity() {
     private lateinit var btnSalvar: MaterialButton
     private lateinit var btnDeslogar: MaterialButton
 
-    private val supabaseClient = SupabaseClient()
-    private var loggedInUserId: String? = null
-    private var sessionToken: String? = null
+    // --- REMOVIDO: Não instanciamos mais o SupabaseClient aqui ---
+    // private val supabaseClient = SupabaseClient()
+    // --- REMOVIDO: ID do usuário e token de sessão serão obtidos diretamente do SupabaseClient ---
+    // private var loggedInUserId: String? = null
+    // private var sessionToken: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,17 +50,16 @@ class PerfilUsuarioActivity : AppCompatActivity() {
         btnSalvar = findViewById(R.id.btn_salvar)
         btnDeslogar = findViewById(R.id.btn_deslogar)
 
-        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
-        loggedInUserId = sharedPreferences.getString("user_id", null)
-        sessionToken = sharedPreferences.getString("session_token", null)
+        // --- ATUALIZADO: Obtenha o ID do usuário e o token diretamente do SupabaseClient ---
+        val currentUserId = SupabaseClient.getLoggedInUserId()
+        val currentSessionToken = SupabaseClient.getAccessToken()
 
-        if (loggedInUserId != null && sessionToken != null) {
-            carregarDadosUsuario(loggedInUserId!!, sessionToken!!)
+        if (currentUserId != null && currentSessionToken != null) {
+            carregarDadosUsuario(currentUserId, currentSessionToken)
         } else {
             mostrarToast("Usuário não logado. Redirecionando...")
-            Log.e("PerfilUsuarioActivity", "ID do usuário ou token de sessão não encontrados nas SharedPreferences.")
-            NavigationManager.navigateToLogin(this)
-            finish()
+            Log.e("PerfilUsuarioActivity", "ID do usuário ou token de sessão não encontrados via SupabaseClient.")
+            handleAuthenticationError() // Redireciona e limpa (se já não estiver limpo)
             return
         }
 
@@ -82,7 +83,8 @@ class PerfilUsuarioActivity : AppCompatActivity() {
     private fun carregarDadosUsuario(userId: String, token: String) {
         lifecycleScope.launch {
             try {
-                val profile: Profile? = supabaseClient.getProfileById(userId, token)
+                // --- ATUALIZADO: Chame SupabaseClient.getProfileById diretamente ---
+                val profile: Profile? = SupabaseClient.getProfileById(userId, token)
 
                 if (profile != null) {
                     etNome.setText(profile.nome)
@@ -131,7 +133,11 @@ class PerfilUsuarioActivity : AppCompatActivity() {
             return
         }
 
-        if (loggedInUserId == null || sessionToken == null) {
+        // --- ATUALIZADO: Obtenha o ID do usuário e o token diretamente do SupabaseClient ---
+        val currentUserId = SupabaseClient.getLoggedInUserId()
+        val currentSessionToken = SupabaseClient.getAccessToken()
+
+        if (currentUserId == null || currentSessionToken == null) {
             mostrarToast("Erro: ID do usuário ou token de sessão não encontrados para salvar.")
             handleAuthenticationError()
             return
@@ -146,17 +152,19 @@ class PerfilUsuarioActivity : AppCompatActivity() {
                     cargo = novoCargo
                 )
 
-                val sucesso = supabaseClient.updateProfile(loggedInUserId!!, profileUpdate, sessionToken!!)
+                // --- ATUALIZADO: Chame SupabaseClient.updateProfile diretamente ---
+                val sucesso = SupabaseClient.updateProfile(currentUserId, profileUpdate, currentSessionToken)
 
                 if (sucesso) {
                     mostrarToast("Perfil atualizado com sucesso!")
-                    Log.d("PerfilUsuarioActivity", "Perfil atualizado para ID: $loggedInUserId")
+                    Log.d("PerfilUsuarioActivity", "Perfil atualizado para ID: $currentUserId")
 
-
-                    finish()
+                    // Redirecionar para o ProfessionalDashboardActivity ou recarregar os dados se necessário
+                    NavigationManager.navigateToLogin(this@PerfilUsuarioActivity) // Navega para o Dashboard principal
+                    finish() // Finaliza esta atividade
                 } else {
                     mostrarToast("Falha ao atualizar perfil.")
-                    Log.e("PerfilUsuarioActivity", "Falha ao atualizar perfil para ID: $loggedInUserId")
+                    Log.e("PerfilUsuarioActivity", "Falha ao atualizar perfil para ID: $currentUserId")
                 }
             } catch (e: Exception) {
                 mostrarToast("Erro ao salvar perfil: ${e.message}")
@@ -170,24 +178,21 @@ class PerfilUsuarioActivity : AppCompatActivity() {
     }
 
     private fun deslogarUsuario() {
-        handleAuthenticationError()
+        handleAuthenticationError() // Esta função já faz o deslogamento completo
     }
 
     private fun handleAuthenticationError() {
-        Log.e("PerfilUsuarioActivity", "Erro de autenticação (401 Unauthorized / JWSError). Deslogando usuário.")
-        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        with(sharedPreferences.edit()) {
-            remove("user_id")
-            remove("session_token")
-            apply()
-        }
+        Log.e("PerfilUsuarioActivity", "Erro de autenticação detectado. Deslogando usuário.")
+        // --- ATUALIZADO: Chame SupabaseClient.clearTokens() para centralizar a limpeza ---
+        SupabaseClient.clearTokens()
         mostrarToast("Sessão expirada. Faça login novamente.")
-        NavigationManager.navigateToLogin(this)
-        finishAffinity()
+        NavigationManager.navigateToLogin(this) // Navega para a tela de login
+        finishAffinity() // Fecha todas as atividades na pilha para evitar retorno
     }
 
     private fun setupNavigationIcons() {
         findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
+            // --- ATUALIZADO: Navega para ProfessionalDashboardActivity, que é a "Home" após o login ---
             NavigationManager.navigateToLogin(this)
         }
         findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
@@ -200,6 +205,7 @@ class PerfilUsuarioActivity : AppCompatActivity() {
             NavigationManager.navigateToCadastroCliente(this)
         }
         findViewById<ImageView>(R.id.icon_user)?.setOnClickListener {
+            // Já está na tela de perfil, não faz nada
         }
     }
 

@@ -1,5 +1,6 @@
 package com.example.salao.network
 
+import android.content.Context
 import android.util.Log
 import com.example.salao.BuildConfig
 import io.ktor.client.HttpClient
@@ -29,10 +30,26 @@ import com.example.salao.model.ProfileUpdate
 import io.ktor.client.request.patch
 import io.ktor.client.request.put
 
-class SupabaseClient {
+object SupabaseClient {
 
     private val _supabaseUrl = BuildConfig.SUPABASE_URL
     private val _supabaseKey = BuildConfig.SUPABASE_ANON_KEY
+
+    // --- ADICIONADO: Variáveis para armazenar o token e o userId ---
+    private var currentAccessToken: String? = null
+    private var currentRefreshToken: String? = null
+    private var currentUserId: String? = null
+
+    // --- ADICIONADO: Contexto da aplicação para SharedPreferences ---
+    private lateinit var applicationContext: Context
+
+    // --- ADICIONADO: Função de inicialização ---
+    fun initClient(context: Context) {
+        if (!::applicationContext.isInitialized) {
+            applicationContext = context.applicationContext
+            loadTokensFromPreferences() // Carrega os tokens assim que o cliente é inicializado
+        }
+    }
 
     private val _client = HttpClient {
         install(ContentNegotiation) {
@@ -55,6 +72,64 @@ class SupabaseClient {
 
     val client: HttpClient
         get() = _client
+
+    fun getAccessToken(): String? {
+        return currentAccessToken
+    }
+
+    fun getRefreshToken(): String? {
+        return currentRefreshToken
+    }
+
+    fun getLoggedInUserId(): String? {
+        return currentUserId
+    }
+
+    // Chamado no initClient e após o login (via AuthClient)
+    fun saveTokens(accessToken: String, refreshToken: String, userId: String) {
+        currentAccessToken = accessToken
+        currentRefreshToken = refreshToken
+        currentUserId = userId
+        val sharedPrefs = applicationContext.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        with(sharedPrefs.edit()) {
+            putString("session_token", accessToken)
+            putString("refresh_token", refreshToken)
+            putString("user_id", userId)
+            apply()
+        }
+        Log.d("SupabaseClient", "Tokens salvos: Access: ${accessToken.take(5)}..., Refresh: ${refreshToken.take(5)}..., UserID: $userId")
+    }
+
+    // Chamado para carregar tokens no início ou para reautenticação
+    private fun loadTokensFromPreferences() {
+        val sharedPrefs = applicationContext.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        currentAccessToken = sharedPrefs.getString("session_token", null)
+        currentRefreshToken = sharedPrefs.getString("refresh_token", null)
+        currentUserId = sharedPrefs.getString("user_id", null)
+        if (currentAccessToken != null) {
+            Log.d("SupabaseClient", "Tokens carregados das preferências. Access: ${currentAccessToken!!.take(5)}...")
+        } else {
+            Log.d("SupabaseClient", "Nenhum token encontrado nas preferências.")
+        }
+    }
+
+    fun clearTokens() {
+        currentAccessToken = null
+        currentRefreshToken = null
+        currentUserId = null
+        val sharedPrefs = applicationContext.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        with(sharedPrefs.edit()) {
+            remove("session_token")
+            remove("refresh_token")
+            remove("user_id")
+            apply()
+        }
+        Log.d("SupabaseClient", "Todos os tokens limpos do SupabaseClient e SharedPreferences.")
+    }
+
+    // ---------------------------------------------------------------
+    // Seus métodos de acesso a dados (inalterados, ainda recebem userJwtToken)
+    // ---------------------------------------------------------------
 
     suspend fun buscarClientesPorNome(prefixo: String, userJwtToken: String): List<Cliente> {
         val response: HttpResponse = client.get("$supabaseUrl/rest/v1/clientes") {
@@ -285,7 +360,7 @@ class SupabaseClient {
             Log.d("deletarAgendamentos", "URL da requisição DELETE: $urlFinal")
             val response = client.delete(urlFinal) {
                 contentType(ContentType.Application.Json)
-               // header("Authorization", "Bearer $userJwtToken")
+                // header("Authorization", "Bearer $userJwtToken") // <--- TOKEN AQUI
             }
             Log.d("deletarAgendamentos", "Resposta da exclusão (status): ${response.status}")
             val responseBody = response.bodyAsText()

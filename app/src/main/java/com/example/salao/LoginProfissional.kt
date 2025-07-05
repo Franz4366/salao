@@ -15,14 +15,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-// import com.example.salao.Agendamento.CircleTransform // Se a CircleTransform for de outro arquivo, mantenha
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgendamento
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToCadastroCliente
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToPerfilUsuario
-import com.example.salao.model.AgendamentoSupabase
-import com.example.salao.model.Cliente
-import com.example.salao.model.Profile
 import com.example.salao.network.SupabaseClient
 import com.example.salao.utils.BirthdayClientsAdapter
 import com.example.salao.utils.esconderBarrasDoSistema
@@ -45,28 +41,30 @@ class LoginProfissional : AppCompatActivity() {
     private lateinit var nomeProfissionalTextView: TextView
     private lateinit var fotoPerfilProfissionalImageView: ImageView
     private lateinit var tvNoAgendamentosToday: TextView
-    private val supabaseClient = SupabaseClient()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
-    private var loggedInUserId: String? = null
-    private var sessionToken: String? = null
+
+    // --- REMOVIDO: Não é mais necessário, pois SupabaseClient gerencia isso ---
+    // private var loggedInUserId: String? = null
+    // private var sessionToken: String? = null
+
     private lateinit var agendamentoAdapter: AgendamentoAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var birthdayClientsRecyclerView: RecyclerView
-    private lateinit var birthdayClientsAdapter: BirthdayClientsAdapter // Mantenha esta linha
+    private lateinit var birthdayClientsAdapter: BirthdayClientsAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_login_profissional)
+        setContentView(R.layout.activity_professional_dashboard)
         esconderBarrasDoSistema(this)
+
+        val currentAccessToken = SupabaseClient.getAccessToken()
+        val loggedInUserId = SupabaseClient.getLoggedInUserId()
 
         birthdayClientsRecyclerView = findViewById(R.id.birthday_clients_recycler_view)
         birthdayClientsRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        // Inicialize o adaptador AQUI com uma lista vazia
         birthdayClientsAdapter = BirthdayClientsAdapter(emptyList())
-        birthdayClientsRecyclerView.adapter = birthdayClientsAdapter // Atribua o adaptador ao RecyclerView
-
-        // REMOVA ESTA LINHA: tvNoBirthdaysToday = findViewById(R.id.tv_no_birthdays_today) // REMOVA ESTA LINHA!
+        birthdayClientsRecyclerView.adapter = birthdayClientsAdapter
 
         nomeProfissionalTextView = findViewById(R.id.nome_profissional)
         fotoPerfilProfissionalImageView = findViewById(R.id.foto_user)
@@ -76,33 +74,35 @@ class LoginProfissional : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         agendamentoAdapter = AgendamentoAdapter(mutableListOf(), object : OnAgendamentoClickListener {
             override fun onAgendamentoClick(agendamentoItem: AgendamentoItem) {
+                // Lidar com o clique, se necessário, por exemplo, navegar para detalhes do Agendamento
             }
         })
         recyclerView.adapter = agendamentoAdapter
 
-        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        loggedInUserId = sharedPreferences.getString("user_id", null)
-        sessionToken = sharedPreferences.getString("session_token", null)
+        // --- REMOVIDO: Não é mais lido de SharedPreferences aqui, SupabaseClient gerencia ---
+        // val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        // loggedInUserId = sharedPreferences.getString("user_id", null)
+        // sessionToken = sharedPreferences.getString("session_token", null)
 
-        if (loggedInUserId != null && sessionToken != null) {
+        if (loggedInUserId != null && currentAccessToken != null) { // Use currentAccessToken diretamente
             Log.d("LoginProfissional", "ID do usuário e Token encontrados. Buscando dados...")
             coroutineScope.launch {
                 try {
-                    buscarPerfilDoUsuario(loggedInUserId!!, sessionToken!!)
-                    fetchAgendamentos()
-                    fetchBirthdayClients() // Esta função agora usará o 'birthdayClientsAdapter' que já existe
+                    buscarPerfilDoUsuario(loggedInUserId, currentAccessToken) // Passe currentAccessToken
+                    fetchAgendamentos() // Esta função obterá o token por si mesma
+                    fetchBirthdayClients() // Esta função obterá o token por si mesma
                 } catch (e: Exception) {
                     Log.e("LoginProfissional", "Erro durante a inicialização: ${e.message}", e)
                     withContext(Dispatchers.Main) {
                         Toast.makeText(this@LoginProfissional, "Erro ao carregar dados iniciais: ${e.message}", Toast.LENGTH_LONG).show()
                     }
-                    handleAuthenticationError(e)
+                    handleAuthenticationError(e) // Chame seu manipulador de erro centralizado
                 }
             }
         } else {
-            Log.e("LoginProfissional", "ID do usuário ou token de sessão não encontrados nas SharedPreferences. Redirecionando para login.")
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
+            Log.e("LoginProfissional", "ID do usuário ou token de sessão não encontrados. Redirecionando para login.")
+            // --- ATUALIZADO: Chame handleAuthenticationError para um fluxo de logout consistente ---
+            handleAuthenticationError(Exception("ID do usuário ou token de sessão não encontrados. Redirecionando para o login."))
             return
         }
 
@@ -122,7 +122,8 @@ class LoginProfissional : AppCompatActivity() {
 
     private suspend fun buscarPerfilDoUsuario(userId: String, token: String) {
         try {
-            val profile = supabaseClient.getProfileById(userId, token)
+            // --- ATUALIZADO: Chame SupabaseClient diretamente ---
+            val profile = SupabaseClient.getProfileById(userId, token)
             withContext(Dispatchers.Main) {
                 if (profile != null) {
                     nomeProfissionalTextView.text = profile.nome ?: "Nome não encontrado"
@@ -151,13 +152,12 @@ class LoginProfissional : AppCompatActivity() {
             withContext(Dispatchers.Main) {
                 nomeProfissionalTextView.text = "Erro ao carregar nome"
                 fotoPerfilProfissionalImageView.setImageResource(R.drawable.ellipse_2)
-                handleAuthenticationError(e)
+                handleAuthenticationError(e) // Centralize o tratamento de erros
             }
         }
     }
 
-    // Mantenha a classe CircleTransform aqui, se for usada apenas nesta Activity.
-    // Se for usada em mais lugares, crie um arquivo separado (utils/CircleTransform.kt)
+    // Mantenha a classe CircleTransform aqui, ou mova para um arquivo de utilidade compartilhado se usado em outro lugar.
     class CircleTransform : Transformation {
         override fun transform(source: Bitmap): Bitmap {
             val size = Math.min(source.width, source.height)
@@ -190,20 +190,25 @@ class LoginProfissional : AppCompatActivity() {
 
     private suspend fun fetchAgendamentos() {
         val listaAgendamentoItems = mutableListOf<AgendamentoItem>()
+        // --- ATUALIZADO: Obtenha o token diretamente do SupabaseClient ---
+        val currentAccessToken = SupabaseClient.getAccessToken()
+        val loggedInUserId = SupabaseClient.getLoggedInUserId() // Obtenha o ID do usuário também do SupabaseClient
+
+        if (currentAccessToken == null || loggedInUserId == null) {
+            Log.e("LoginProfissional", "Token de sessão ou ID do usuário são nulos. Não é possível buscar agendamentos.")
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@LoginProfissional, "Sessão inválida. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
+                handleAuthenticationError(Exception("Token de sessão ou ID do usuário é nulo."))
+            }
+            return
+        }
+
         try {
             val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             val dataAtual = dateFormat.format(Date())
 
-            val currentSessionToken = sessionToken
-            if (currentSessionToken == null) {
-                Log.e("LoginProfissional", "Token de sessão é nulo. Não é possível buscar agendamentos.")
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@LoginProfissional, "Sessão inválida. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
-                }
-                return
-            }
-
-            val agendamentosSupabase = supabaseClient.getAgendamentosPorData(dataAtual, loggedInUserId, currentSessionToken)
+            // --- ATUALIZADO: Chame SupabaseClient diretamente ---
+            val agendamentosSupabase = SupabaseClient.getAgendamentosPorData(dataAtual, loggedInUserId, currentAccessToken)
             Log.d("LoginProfissional", "Agendamentos para o usuário $loggedInUserId na data atual: ${agendamentosSupabase.size}")
 
             withContext(Dispatchers.Main) {
@@ -214,10 +219,12 @@ class LoginProfissional : AppCompatActivity() {
                     tvNoAgendamentosToday.visibility = View.VISIBLE
                 } else {
                     agendamentosSupabase.forEach { agendamentoSupabase ->
-                        val cliente = supabaseClient.getClientePorId(agendamentoSupabase.clienteId, currentSessionToken)
+                        // --- ATUALIZADO: Chame SupabaseClient diretamente ---
+                        val cliente = SupabaseClient.getClientePorId(agendamentoSupabase.clienteId, currentAccessToken)
                         val nomeCliente = cliente?.nome ?: "Cliente não encontrado"
 
-                        val profissionalProfile = supabaseClient.getProfileById(agendamentoSupabase.profissionalId, currentSessionToken)
+                        // --- ATUALIZADO: Chame SupabaseClient diretamente ---
+                        val profissionalProfile = SupabaseClient.getProfileById(agendamentoSupabase.profissionalId, currentAccessToken)
                         val nomeDoProfissionalExibicao = profissionalProfile?.nome ?: "Profissional não encontrado"
 
                         val fullDateTime = "${agendamentoSupabase.dataAgendamento} ${agendamentoSupabase.horaAgendamento}"
@@ -256,19 +263,25 @@ class LoginProfissional : AppCompatActivity() {
                 recyclerView.visibility = View.GONE
                 tvNoAgendamentosToday.visibility = View.VISIBLE
                 tvNoAgendamentosToday.text = "Erro ao carregar agendamentos."
+                handleAuthenticationError(e) // Centralize o tratamento de erros
             }
         }
     }
 
     private suspend fun fetchBirthdayClients() {
-        val currentSessionToken = sessionToken
-        if (currentSessionToken == null) {
+        // --- ATUALIZADO: Obtenha o token diretamente do SupabaseClient ---
+        val currentAccessToken = SupabaseClient.getAccessToken()
+        if (currentAccessToken == null) {
             Log.e("LoginProfissional", "Token de sessão é nulo. Não é possível buscar aniversariantes.")
+            withContext(Dispatchers.Main) {
+                handleAuthenticationError(Exception("Token de sessão é nulo para clientes de aniversário."))
+            }
             return
         }
 
         try {
-            val allClients = supabaseClient.getAllClientes(currentSessionToken)
+            // --- ATUALIZADO: Chame SupabaseClient diretamente ---
+            val allClients = SupabaseClient.getAllClientes(currentAccessToken)
             Log.d("LoginProfissional", "Total de clientes encontrados para verificar aniversário: ${allClients.size}")
 
             val today = LocalDate.now()
@@ -293,9 +306,6 @@ class LoginProfissional : AppCompatActivity() {
             withContext(Dispatchers.Main) {
                 // Use o adaptador que já existe e chame o método updateClients
                 birthdayClientsAdapter.updateClients(birthdayClients)
-                // Remova qualquer lógica de visibilidade para birthdayClientsRecyclerView e tvNoBirthdaysToday aqui
-                // birthdayClientsRecyclerView.visibility = View.VISIBLE // Isso é agora gerenciado pelo adaptador, que sempre desenha um item
-                // tvNoBirthdaysToday.visibility = View.GONE // Esta TextView não existe mais/não é usada para isso
             }
         } catch (e: Exception) {
             Log.e("LoginProfissional", "Erro ao buscar clientes aniversariantes: ${e.message}", e)
@@ -303,17 +313,14 @@ class LoginProfissional : AppCompatActivity() {
                 Toast.makeText(this@LoginProfissional, "Erro ao carregar aniversariantes: ${e.message}", Toast.LENGTH_LONG).show()
                 // Em caso de erro, ainda passamos uma lista vazia para o adaptador para exibir a mensagem de "não há"
                 birthdayClientsAdapter.updateClients(emptyList())
-                // Remova a lógica de visibilidade para o erro também
-                // birthdayClientsRecyclerView.visibility = View.GONE
-                // tvNoBirthdaysToday.visibility = View.VISIBLE
-                // tvNoBirthdaysToday.text = "Erro ao carregar aniversariantes."
+                handleAuthenticationError(e) // Centralize o tratamento de erros
             }
         }
     }
 
     private fun setupNavigationIcons() {
         findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
-
+            // Já está no dashboard, não faz nada ou navega para si mesmo para atualizar se necessário
         }
         findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
             navigateToAgendamento(this)
@@ -332,17 +339,16 @@ class LoginProfissional : AppCompatActivity() {
     private fun handleAuthenticationError(e: Exception) {
         if (e.message?.contains("401 Unauthorized", ignoreCase = true) == true ||
             e.message?.contains("JWSError", ignoreCase = true) == true ||
-            e.message?.contains("Perfil não encontrado para o usuário logado.", ignoreCase = true) == true) {
-            Log.e("LoginProfissional", "Erro de autenticação (401 Unauthorized / JWSError / Perfil não encontrado). Deslogando usuário.")
-            val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-            with(sharedPreferences.edit()) {
-                remove("user_id")
-                remove("session_token")
-                apply()
-            }
+            e.message?.contains("Perfil não encontrado para o usuário logado.", ignoreCase = true) == true ||
+            e.message?.contains("Token de sessão é nulo", ignoreCase = true) == true) { // Adicionada verificação de mensagem específica
+            Log.e("LoginProfissional", "Erro de autenticação detectado. Limpando tokens e redirecionando para login.")
+            // --- ATUALIZADO: Use SupabaseClient.clearTokens() para gerenciamento centralizado de tokens ---
+            SupabaseClient.clearTokens()
             Toast.makeText(this, "Sessão expirada ou inválida. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
+            val intent = Intent(this, MainActivity::class.java) // Assumindo que MainActivity é sua tela de login
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK // Limpa a pilha de atividades
+            startActivity(intent)
+            finish() // Finaliza a atividade atual
         }
     }
 

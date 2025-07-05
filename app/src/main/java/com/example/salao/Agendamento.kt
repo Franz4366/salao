@@ -8,7 +8,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.salao.network.SupabaseClient
 import com.example.salao.utils.esconderBarrasDoSistema
 import android.app.TimePickerDialog
 import android.content.Context
@@ -24,6 +23,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import android.widget.LinearLayout
+import android.widget.Toast
 import com.example.salao.utils.gerarDiasDoMes
 import com.squareup.picasso.Picasso
 import kotlinx.coroutines.launch
@@ -36,7 +36,6 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.view.LayoutInflater
 import android.widget.EditText
-import android.widget.Toast
 import com.example.salaa.DiaSemanaAdapter
 import com.example.salaa.OnDateClickListener
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
@@ -45,6 +44,7 @@ import com.example.salao.com.example.salao.utils.NavigationManager.navigateToLog
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToPerfilUsuario
 import com.squareup.picasso.Transformation
 import com.example.salao.model.Profile
+import com.example.salao.network.SupabaseClient
 
 class Agendamento : AppCompatActivity() {
 
@@ -68,10 +68,7 @@ class Agendamento : AppCompatActivity() {
     private var selectedMinute: Int? = null
     private var selectedProfessionalView: View? = null
 
-    private val supabaseClient = SupabaseClient()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
-
-    private var sessionToken: String? = null
 
     override fun onDestroy() {
         super.onDestroy()
@@ -83,14 +80,15 @@ class Agendamento : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_agendamento)
 
-        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        sessionToken = sharedPreferences.getString("session_token", null)
+        esconderBarrasDoSistema(this) // Esconde as barras assim que o layout é setado
 
-        if (sessionToken == null) {
+        // --- ALTERADO: Obtenha o token diretamente do SupabaseClient ---
+        val currentAccessToken = SupabaseClient.getAccessToken()
+
+        if (currentAccessToken == null) {
             Log.e("Agendamento", "Token de sessão não encontrado. Redirecionando para login.")
             Toast.makeText(this, "Sessão expirada ou inválida. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
-            navigateToLogin(this)
-            finish()
+            handleAuthenticationError() // Redireciona e limpa tokens
             return
         }
 
@@ -161,11 +159,11 @@ class Agendamento : AppCompatActivity() {
     }
 
     private fun salvarAgendamento() {
-        val currentSessionToken = sessionToken
-        if (currentSessionToken == null) {
+        // --- ALTERADO: Obtém o token diretamente do SupabaseClient ---
+        val currentAccessToken = SupabaseClient.getAccessToken()
+        if (currentAccessToken == null) {
             exibirMensagem("Erro: Token de autenticação não encontrado. Faça login novamente.")
-            navigateToLogin(this)
-            finish()
+            handleAuthenticationError()
             return
         }
 
@@ -179,21 +177,22 @@ class Agendamento : AppCompatActivity() {
 
             coroutineScope.launch {
                 try {
-                    val cliente = supabaseClient.getClientePorNome(selectedClientName!!, currentSessionToken)
+                    // --- ALTERADO: Chama o método do SupabaseClient diretamente ---
+                    val cliente = SupabaseClient.getClientePorNome(selectedClientName!!, currentAccessToken)
                     if (cliente != null) {
                         val clienteId = cliente.id
 
-                        val sucesso = supabaseClient.criarAgendamento(
+                        // --- ALTERADO: Chama o método do SupabaseClient diretamente ---
+                        val sucesso = SupabaseClient.criarAgendamento(
                             clienteId = clienteId,
                             dataAgendamento = dataAgendamento,
                             horaAgendamento = horaAgendamento,
                             profissionalId = profissionalIdParaAgendamento,
                             comentario = observacoes,
-                            userJwtToken = currentSessionToken
+                            userJwtToken = currentAccessToken
                         )
 
                         Log.d("Agendamento", "Resultado de criarAgendamento: $sucesso")
-
 
                         if (sucesso) {
                             Log.d("Agendamento", "Agendamento criado com sucesso! Iniciando DetalhesAgendamentoActivity.")
@@ -219,15 +218,7 @@ class Agendamento : AppCompatActivity() {
                     exibirMensagem("Erro ao salvar o agendamento: ${e.message}")
                     if (e.message?.contains("401 Unauthorized") == true || e.message?.contains("JWSError") == true) {
                         Log.e("Agendamento", "Erro de autenticação (401 Unauthorized / JWSError). Deslogando usuário.")
-                        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-                        with(sharedPreferences.edit()) {
-                            remove("user_id")
-                            remove("session_token")
-                            apply()
-                        }
-                        Toast.makeText(this@Agendamento, "Sessão expirada. Faça login novamente.", Toast.LENGTH_LONG).show()
-                        navigateToLogin(this@Agendamento)
-                        finish()
+                        handleAuthenticationError() // Centraliza a lógica de logout
                     }
                 }
             }
@@ -237,8 +228,9 @@ class Agendamento : AppCompatActivity() {
     }
 
     private fun buscarClientes(prefixo: String) {
-        val currentSessionToken = sessionToken
-        if (currentSessionToken == null) {
+        // --- ALTERADO: Obtém o token diretamente do SupabaseClient ---
+        val currentAccessToken = SupabaseClient.getAccessToken()
+        if (currentAccessToken == null) {
             handleAuthenticationError()
             Log.e("Agendamento", "Token de sessão é nulo ao buscar clientes. Redirecionando para login.")
             Toast.makeText(this, "Erro de autenticação. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
@@ -249,7 +241,8 @@ class Agendamento : AppCompatActivity() {
 
         coroutineScope.launch {
             try {
-                val clientes = supabaseClient.buscarClientesPorNome(prefixo, currentSessionToken)
+                // --- ALTERADO: Chama o método do SupabaseClient diretamente ---
+                val clientes = SupabaseClient.buscarClientesPorNome(prefixo, currentAccessToken)
                 val nomesClientes = clientes.map { it.nome }
                 atualizarSugestoes(nomesClientes)
             } catch (e: Exception) {
@@ -288,18 +281,19 @@ class Agendamento : AppCompatActivity() {
     }
 
     private fun carregarProfissionais() {
-        val currentSessionToken = sessionToken
-        if (currentSessionToken == null) {
+        // --- ALTERADO: Obtém o token diretamente do SupabaseClient ---
+        val currentAccessToken = SupabaseClient.getAccessToken()
+        if (currentAccessToken == null) {
             Log.e("Agendamento", "Token de sessão é nulo ao carregar profissionais. Redirecionando para login.")
             Toast.makeText(this, "Erro de autenticação. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
-            navigateToLogin(this)
-            finish()
+            handleAuthenticationError()
             return
         }
 
         coroutineScope.launch {
             try {
-                val profissionais = supabaseClient.getProfissionais(currentSessionToken)
+                // --- ALTERADO: Chama o método do SupabaseClient diretamente ---
+                val profissionais = SupabaseClient.getProfissionais(currentAccessToken)
                 containerProfissionais.removeAllViews()
 
                 if (profissionais.isNotEmpty()) {
@@ -337,12 +331,8 @@ class Agendamento : AppCompatActivity() {
 
     private fun handleAuthenticationError() {
         Log.e("Agendamento", "Erro de autenticação (401 Unauthorized / JWSError). Deslogando usuário.")
-        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        with(sharedPreferences.edit()) {
-            remove("user_id")
-            remove("session_token")
-            apply()
-        }
+        // --- ALTERADO: Usa SupabaseClient.clearTokens() ---
+        SupabaseClient.clearTokens()
         Toast.makeText(this, "Sessão expirada. Faça login novamente.", Toast.LENGTH_LONG).show()
         navigateToLogin(this)
         finish()
@@ -431,9 +421,13 @@ class Agendamento : AppCompatActivity() {
 
     private fun setupNavigationIcons() {
         findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
-            navigateToLogin(this)
+            // --- ALTERADO: Redireciona para ProfessionalDashboardActivity ---
+            val intent = Intent(this, LoginProfissional::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            startActivity(intent)
         }
         findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
+            // Já está na tela de agendamento, não faz nada
         }
 
         findViewById<ImageView>(R.id.icon_calendar)?.setOnClickListener {

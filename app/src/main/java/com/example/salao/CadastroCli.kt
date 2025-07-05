@@ -2,7 +2,7 @@ package com.example.salao
 
 import android.app.AlertDialog
 import android.app.DatePickerDialog
-import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -18,22 +18,25 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+// Removido: import androidx.lifecycle.ViewModelProvider
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgenda
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToAgendamento
-import com.example.salao.com.example.salao.utils.NavigationManager.navigateToLogin
 import com.example.salao.com.example.salao.utils.NavigationManager.navigateToPerfilUsuario
-import com.example.salao.network.SupabaseClient
 import com.example.salao.utils.esconderBarrasDoSistema
+import com.example.salao.model.Cliente
+import com.example.salao.model.NovoCliente
+// Removido: import com.example.salao.viewmodel.AuthViewModel
+import com.example.salao.network.SupabaseClient // Adicionando import do SupabaseClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
-import com.example.salao.model.Cliente
-import com.example.salao.model.NovoCliente
 
 class CadastroCli : AppCompatActivity() {
 
@@ -43,12 +46,15 @@ class CadastroCli : AppCompatActivity() {
     private lateinit var dataNascEditText: EditText
     private lateinit var btnSalvarCliente: FrameLayout
     private lateinit var btnDeletarCliente: FrameLayout
-    private val supabaseClient = SupabaseClient()
+
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
     private var listaClientes: List<Cliente> = emptyList()
     private var clienteIdParaDeletar: String? = null
+    // Removido: private lateinit var authViewModel: AuthViewModel
 
-    private var sessionToken: String? = null
+    companion object {
+        private const val TAG = "CadastroCli"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,17 +62,40 @@ class CadastroCli : AppCompatActivity() {
         setContentView(R.layout.activity_cadastro_cli)
         esconderBarrasDoSistema(this)
 
-        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        sessionToken = sharedPreferences.getString("session_token", null)
+        // Inicializa os componentes da UI IMEDIATAMENTE após setContentView
+        inicializarComponentesUI()
 
-        if (sessionToken == null) {
-            Log.e("CadastroCli", "Token de sessão não encontrado. Redirecionando para login.")
-            Toast.makeText(this, "Sessão expirada ou inválida. Por favor, faça login novamente.", Toast.LENGTH_LONG).show()
-            navigateToLogin(this)
-            finish()
-            return
+        // Removido: authViewModel = ViewModelProvider(this).get(AuthViewModel::class.java)
+
+        // --- ALTERADO: Removido o observer do AuthViewModel.
+        // A lógica de carregamento de dados do cliente agora depende diretamente
+        // da existência do token no SupabaseClient.
+        val currentAccessToken = SupabaseClient.getAccessToken()
+        if (currentAccessToken == null) {
+            // Usuário NÃO logado, redireciona para a tela de login
+            Log.e(TAG, "CadastroCli: Token de acesso NÃO encontrado. Redirecionando para login.")
+            Toast.makeText(this, "Sessão expirada. Faça login novamente.", Toast.LENGTH_LONG)
+                .show()
+            val intent = Intent(this, MainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            finish() // Finaliza esta Activity
+        } else {
+            // Usuário está logado. Pode prosseguir com as operações que dependem do token.
+            // Carrega dados de cliente se houver na intent.
+            val intentClienteId = intent.getStringExtra("CLIENTE_ID")
+            Log.d(TAG, "ID do cliente da Intent (onCreate): $intentClienteId")
+            if (!intentClienteId.isNullOrEmpty()) {
+                clienteIdParaDeletar = intentClienteId
+                btnDeletarCliente.isEnabled = true
+                carregarDadosCliente(intentClienteId)
+            } else {
+                btnDeletarCliente.isEnabled = false
+            }
         }
+    }
 
+    private fun inicializarComponentesUI() {
         nomeEditText = findViewById(R.id.nome)
         telefoneEditText = findViewById(R.id.telefone)
         emailEditText = findViewById(R.id.email)
@@ -74,15 +103,12 @@ class CadastroCli : AppCompatActivity() {
         btnSalvarCliente = findViewById(R.id.rectangle_9)
         btnDeletarCliente = findViewById(R.id.rectangle_7)
 
-        btnDeletarCliente.isEnabled = false
+        btnDeletarCliente.isEnabled = false // Estado inicial
 
         btnSalvarCliente.setOnClickListener { cadastrarNovoCliente() }
-
         nomeEditText.addTextChangedListener(nomeTextWatcher)
         nomeEditText.onItemClickListener = nomeItemClickListener
-
         dataNascEditText.setOnClickListener { mostrarDatePickerDialog() }
-
         btnDeletarCliente.setOnClickListener {
             clienteIdParaDeletar?.let { id ->
                 confirmarExclusao(id)
@@ -90,23 +116,14 @@ class CadastroCli : AppCompatActivity() {
                 Toast.makeText(this, "Nenhum cliente selecionado para exclusão", Toast.LENGTH_SHORT).show()
             }
         }
-
         setupNavigationIcons()
-
-        val intentClienteId = intent.getStringExtra("CLIENTE_ID")
-        Log.d("CadastroCli", "ID do cliente da Intent (onCreate): $intentClienteId")
-        if (!intentClienteId.isNullOrEmpty()) {
-            clienteIdParaDeletar = intentClienteId
-
-            btnDeletarCliente.isEnabled = true
-        } else {
-            btnDeletarCliente.isEnabled = false
-        }
     }
 
     private fun setupNavigationIcons() {
         findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
-            navigateToLogin(this)
+            val intent = Intent(this, LoginProfissional::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            startActivity(intent)
         }
         findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
             navigateToAgendamento(this)
@@ -115,6 +132,7 @@ class CadastroCli : AppCompatActivity() {
             navigateToAgenda(this)
         }
         findViewById<ImageView>(R.id.icon_add)?.setOnClickListener {
+            // Já estamos na tela de cadastro de cliente, não faz nada
         }
 
         findViewById<ImageView>(R.id.icon_user)?.setOnClickListener {
@@ -158,34 +176,41 @@ class CadastroCli : AppCompatActivity() {
 
     private val nomeItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
         val nomeSelecionado = nomeEditText.adapter.getItem(position) as String
-        val clienteSelecionado = listaClientes.find { it.nome.equals(nomeSelecionado, ignoreCase = true) }
+        val clienteSelecionado =
+            listaClientes.find { it.nome.equals(nomeSelecionado, ignoreCase = true) }
 
         clienteSelecionado?.let {
             preencherCamposCliente(it)
             clienteIdParaDeletar = it.id
-            Log.d("CadastroCli", "Cliente selecionado. ID para deletar: $clienteIdParaDeletar")
+            Log.d(TAG, "Cliente selecionado. ID para deletar: $clienteIdParaDeletar")
             btnDeletarCliente.isEnabled = true
         } ?: run {
             limparCampos()
-            Log.d("CadastroCli", "Nenhum cliente correspondente encontrado para preenchimento.")
+            Log.d(TAG, "Nenhum cliente correspondente encontrado para preenchimento.")
         }
     }
 
     private fun buscarClientes(prefixo: String) {
-        val currentSessionToken = sessionToken
-        if (currentSessionToken == null) {
+        // --- ALTERADO: Obtém o token diretamente do SupabaseClient ---
+        val currentAccessToken = SupabaseClient.getAccessToken()
+        if (currentAccessToken == null) {
             handleAuthenticationError()
             return
         }
 
         coroutineScope.launch {
             try {
-                listaClientes = supabaseClient.buscarClientesPorNome(prefixo, currentSessionToken)
+                // Chama o método do SupabaseClient passando o token
+                listaClientes = SupabaseClient.buscarClientesPorNome(prefixo, currentAccessToken)
                 val nomesClientes = listaClientes.map { it.nome }
-                atualizarSugestoesNome(nomesClientes)
+                withContext(Dispatchers.Main) {
+                    atualizarSugestoesNome(nomesClientes)
+                }
             } catch (e: Exception) {
-                Log.e("CadastroCli", "Erro ao buscar clientes: ${e.message}", e)
-                Toast.makeText(this@CadastroCli, "Erro ao buscar clientes", Toast.LENGTH_SHORT).show()
+                Log.e(TAG, "Erro ao buscar clientes: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@CadastroCli, "Erro ao buscar clientes: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
                 if (e.message?.contains("401 Unauthorized") == true || e.message?.contains("JWSError") == true) {
                     handleAuthenticationError()
                 }
@@ -244,7 +269,7 @@ class CadastroCli : AppCompatActivity() {
                 val date = inputFormat.parse(dataSupabase)
                 date?.let { outputFormat.format(it) } ?: dataSupabase
             } catch (e: Exception) {
-                Log.e("CadastroCli", "Erro ao formatar data para exibição: ${e.message}", e)
+                Log.e(TAG, "Erro ao formatar data para exibição: ${e.message}", e)
                 dataSupabase
             }
         } else {
@@ -260,7 +285,7 @@ class CadastroCli : AppCompatActivity() {
                 val date = inputFormat.parse(dataLocal)
                 date?.let { outputFormat.format(it) } ?: dataLocal
             } catch (e: Exception) {
-                Log.e("CadastroCli", "Erro ao formatar data para Supabase: ${e.message}", e)
+                Log.e(TAG, "Erro ao formatar data para Supabase: ${e.message}", e)
                 dataLocal
             }
         } else {
@@ -269,8 +294,9 @@ class CadastroCli : AppCompatActivity() {
     }
 
     private fun cadastrarNovoCliente() {
-        val currentSessionToken = sessionToken
-        if (currentSessionToken == null) {
+        // --- ALTERADO: Obtém o token diretamente do SupabaseClient ---
+        val currentAccessToken = SupabaseClient.getAccessToken()
+        if (currentAccessToken == null) {
             handleAuthenticationError()
             return
         }
@@ -295,16 +321,21 @@ class CadastroCli : AppCompatActivity() {
 
         coroutineScope.launch {
             try {
-                supabaseClient.cadastrarCliente(novoCliente, currentSessionToken)
-                Toast.makeText(
-                    this@CadastroCli,
-                    "Cliente cadastrado com sucesso!",
-                    Toast.LENGTH_SHORT
-                ).show()
-                limparCampos()
+                // Chama o método do SupabaseClient passando o token
+                SupabaseClient.cadastrarCliente(novoCliente, currentAccessToken)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@CadastroCli,
+                        "Cliente cadastrado com sucesso!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    limparCampos()
+                }
             } catch (e: Exception) {
-                Log.e("CadastroCli", "Erro ao cadastrar cliente: ${e.message}", e)
-                Toast.makeText(this@CadastroCli, "Erro ao cadastrar cliente", Toast.LENGTH_LONG).show()
+                Log.e(TAG, "Erro ao cadastrar cliente: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@CadastroCli, "Erro ao cadastrar cliente: ${e.message}", Toast.LENGTH_LONG).show()
+                }
                 if (e.message?.contains("401 Unauthorized") == true || e.message?.contains("JWSError") == true) {
                     handleAuthenticationError()
                 }
@@ -317,7 +348,7 @@ class CadastroCli : AppCompatActivity() {
             .setTitle("Confirmar Exclusão")
             .setMessage("Tem certeza que deseja deletar este cliente?")
             .setPositiveButton("Sim") { _, _ ->
-                Log.d("CadastroCli", "Tentando deletar cliente com ID: $clienteId")
+                Log.d(TAG, "Tentando deletar cliente com ID: $clienteId")
                 deletarCliente(clienteId)
             }
             .setNegativeButton("Não", null)
@@ -325,26 +356,32 @@ class CadastroCli : AppCompatActivity() {
     }
 
     private fun deletarCliente(clienteId: String) {
-        val currentSessionToken = sessionToken
-        if (currentSessionToken == null) {
+        // --- ALTERADO: Obtém o token diretamente do SupabaseClient ---
+        val currentAccessToken = SupabaseClient.getAccessToken()
+        if (currentAccessToken == null) {
             handleAuthenticationError()
             return
         }
 
-        Log.d("CadastroCli", "Deletar cliente chamado com ID: $clienteId")
+        Log.d(TAG, "Deletar cliente chamado com ID: $clienteId")
         coroutineScope.launch {
             try {
-                supabaseClient.deletarCliente(clienteId, currentSessionToken)
-                Log.d("CadastroCli", "Cliente com ID $clienteId deletado com sucesso!")
-                Toast.makeText(
-                    this@CadastroCli,
-                    "Cliente deletado com sucesso!",
-                    Toast.LENGTH_SHORT
-                ).show()
-                limparCampos()
+                // Chama o método do SupabaseClient passando o token
+                SupabaseClient.deletarCliente(clienteId, currentAccessToken)
+                Log.d(TAG, "Cliente com ID $clienteId deletado com sucesso!")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@CadastroCli,
+                        "Cliente deletado com sucesso!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    limparCampos()
+                }
             } catch (e: Exception) {
-                Log.e("CadastroCli", "Erro ao deletar cliente: ${e.message}", e)
-                Toast.makeText(this@CadastroCli, "Erro ao deletar cliente", Toast.LENGTH_SHORT).show()
+                Log.e(TAG, "Erro ao deletar cliente: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@CadastroCli, "Erro ao deletar cliente: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
                 if (e.message?.contains("401 Unauthorized") == true || e.message?.contains("JWSError") == true) {
                     handleAuthenticationError()
                 }
@@ -353,15 +390,53 @@ class CadastroCli : AppCompatActivity() {
     }
 
     private fun handleAuthenticationError() {
-        Log.e("CadastroCli", "Erro de autenticação (401 Unauthorized / JWSError). Deslogando usuário.")
-        val sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        with(sharedPreferences.edit()) {
-            remove("user_id")
-            remove("session_token")
-            apply()
-        }
+        Log.e(TAG, "Erro de autenticação detectado. Limpando tokens e redirecionando para login.")
+        // --- ALTERADO: Chama SupabaseClient.clearTokens() e redireciona ---
+        SupabaseClient.clearTokens()
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish() // Finaliza esta Activity
         Toast.makeText(this, "Sessão expirada. Faça login novamente.", Toast.LENGTH_LONG).show()
-        navigateToLogin(this)
-        finish()
+    }
+
+    private fun carregarDadosCliente(clienteId: String) {
+        // --- ALTERADO: Obtém o token diretamente do SupabaseClient ---
+        val currentAccessToken = SupabaseClient.getAccessToken()
+        if (currentAccessToken == null) {
+            handleAuthenticationError()
+            return
+        }
+        coroutineScope.launch {
+            try {
+                // Chama o método do SupabaseClient passando o token
+                val cliente = SupabaseClient.getClientePorId(clienteId, currentAccessToken)
+                withContext(Dispatchers.Main) {
+                    cliente?.let {
+                        preencherCamposCliente(it)
+                        clienteIdParaDeletar = it.id
+                    } ?: run {
+                        Toast.makeText(
+                            this@CadastroCli,
+                            "Cliente não encontrado.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        limparCampos()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro ao carregar dados do cliente: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@CadastroCli,
+                        "Erro ao carregar dados do cliente: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                if (e.message?.contains("401 Unauthorized") == true || e.message?.contains("JWSError") == true) {
+                    handleAuthenticationError()
+                }
+            }
+        }
     }
 }

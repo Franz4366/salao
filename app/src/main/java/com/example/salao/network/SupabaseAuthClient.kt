@@ -78,5 +78,4 @@ class SupabaseAuthClient {
         }
         return response.bodyAsText()
     }
-
 }
