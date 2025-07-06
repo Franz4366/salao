@@ -73,3 +73,9 @@ data class AgendamentoItem(
     val profissionalNome: String,
     val comentario: String?
 )
+
+@Serializable
+data class UserFcmToken(
+    val user_id: String,
+    val fcm_token: String
+)

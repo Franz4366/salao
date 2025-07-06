@@ -12,7 +12,7 @@ import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.example.salao.MainActivity
+import com.example.salao.Agenda
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.example.salao.R
@@ -24,32 +24,16 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         private const val CHANNEL_ID = "DefaultChannel" // ID único para o canal de notificação
     }
 
-    /**
-     * Chamado quando um novo token de registro do FCM é gerado.
-     * Este token identifica o dispositivo e é necessário para enviar notificações direcionadas.
-     */
     override fun onNewToken(token: String) {
         Log.d(TAG, "Refreshed token: $token")
-        // IMPORTANTE: Se você pretende enviar notificações para usuários específicos ou grupos,
-        // você precisará enviar este 'token' para o seu servidor Supabase/backend.
-        // Por exemplo, você pode associar este token ao ID do usuário no seu banco de dados Supabase.
-        // Ex: sendRegistrationTokenToSupabase(token)
     }
 
-    /**
-     * Chamado quando uma mensagem do FCM é recebida.
-     * As mensagens podem vir com um payload de dados, um payload de notificação, ou ambos.
-     */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         Log.d(TAG, "From: ${remoteMessage.from}")
 
         // 1. Processar dados da mensagem (key-value pairs)
         remoteMessage.data.isNotEmpty().let {
             Log.d(TAG, "Message data payload: ${remoteMessage.data}")
-            // Aqui você pode processar dados personalizados enviados na notificação.
-            // Por exemplo, dados sobre um agendamento, um ID de cliente, etc.
-            // Estes dados podem ser usados para navegar para uma tela específica ao clicar na notificação,
-            // ou para atualizar a UI do app sem exibir uma notificação visual.
         }
 
         // 2. Exibir notificação visual (se presente)
@@ -62,13 +46,10 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         }
     }
 
-    /**
-     * Cria e exibe a notificação visual na barra de status do dispositivo.
-     */
     private fun sendNotification(title: String?, messageBody: String?) {
         // Intent que será disparada ao clicar na notificação.
         // Leva o usuário de volta para a MainActivity.
-        val intent = Intent(this, MainActivity::class.java).apply {
+        val intent = Intent(this, Agenda::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP) // Limpa a pilha de atividades
         }
         val pendingIntent = PendingIntent.getActivity(

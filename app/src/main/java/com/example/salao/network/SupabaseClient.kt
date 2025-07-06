@@ -16,7 +16,6 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
 import io.ktor.http.URLBuilder
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
@@ -28,7 +27,12 @@ import com.example.salao.model.AgendamentoSupabase
 import com.example.salao.model.Profile
 import com.example.salao.model.ProfileUpdate
 import io.ktor.client.request.patch
-import io.ktor.client.request.put
+import com.example.salao.model.UserFcmToken
+import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 object SupabaseClient {
 
@@ -42,6 +46,17 @@ object SupabaseClient {
 
     // --- ADICIONADO: Contexto da aplicação para SharedPreferences ---
     private lateinit var applicationContext: Context
+
+    // --- ADICIONADO: Instância do Supabase Kotlin Client ---
+    // Esta instância será usada para interagir com os serviços do Supabase, como Postgrest.
+    private val supabase = createSupabaseClient(
+        supabaseUrl = _supabaseUrl,
+        supabaseKey = _supabaseKey
+    ) {
+        // Instale os módulos necessários, como Postgrest, para interagir com o banco de dados.
+        install(Postgrest)
+        // Você também pode instalar outros módulos aqui, como Auth, Storage, etc., se precisar.
+    }
 
     // --- ADICIONADO: Função de inicialização ---
     fun initClient(context: Context) {
@@ -127,9 +142,19 @@ object SupabaseClient {
         Log.d("SupabaseClient", "Todos os tokens limpos do SupabaseClient e SharedPreferences.")
     }
 
-    // ---------------------------------------------------------------
-    // Seus métodos de acesso a dados (inalterados, ainda recebem userJwtToken)
-    // ---------------------------------------------------------------
+    suspend fun updateFcmToken(userId: String, fcmToken: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                val tokenRecord = UserFcmToken(user_id = userId, fcm_token = fcmToken)
+                // Use a sintaxe específica da versão 1.x.x para upsert:
+                supabase.postgrest["user_fcm_tokens"].upsert(listOf(tokenRecord))
+                Log.d("SupabaseClient", "FCM token para o usuário $userId foi salvo/atualizado.")
+            } catch (e: Exception) {
+                Log.e("SupabaseClient", "Falha ao salvar o FCM token no Supabase", e)
+                throw e
+            }
+        }
+    }
 
     suspend fun buscarClientesPorNome(prefixo: String, userJwtToken: String): List<Cliente> {
         val response: HttpResponse = client.get("$supabaseUrl/rest/v1/clientes") {
@@ -360,7 +385,8 @@ object SupabaseClient {
             Log.d("deletarAgendamentos", "URL da requisição DELETE: $urlFinal")
             val response = client.delete(urlFinal) {
                 contentType(ContentType.Application.Json)
-                // header("Authorization", "Bearer $userJwtToken") // <--- TOKEN AQUI
+                // Se você for deletar agendamentos que requerem autenticação, descomente e passe o token aqui
+                // header("Authorization", "Bearer $userJwtToken")
             }
             Log.d("deletarAgendamentos", "Resposta da exclusão (status): ${response.status}")
             val responseBody = response.bodyAsText()

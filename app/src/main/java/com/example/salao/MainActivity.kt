@@ -1,6 +1,5 @@
 package com.example.salao
 
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -13,18 +12,50 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.salao.network.SupabaseAuthClient
-import com.example.salao.network.SupabaseClient // Importa o SupabaseClient
+import com.example.salao.network.SupabaseClient
 import kotlinx.coroutines.launch
 import com.example.salao.utils.esconderBarrasDoSistema
 import android.Manifest
+import com.google.firebase.messaging.FirebaseMessaging
+import androidx.activity.result.contract.ActivityResultContracts
 
 class MainActivity : AppCompatActivity() {
 
     private val authClient = SupabaseAuthClient()
     private val REQUEST_NOTIFICATION_PERMISSION = 100
 
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // Permissão concedida.
+            Log.d("Permission", "POST_NOTIFICATIONS permission granted.")
+        } else {
+            // Permissão negada. Informe ao usuário a importância da notificação.
+            Log.w("Permission", "POST_NOTIFICATIONS permission denied.")
+        }
+    }
+
+    private fun askNotificationPermission() {
+        // Válido apenas para Android 13 (TIRAMISU) ou superior
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                // Solicita a permissão
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+    companion object {
+        private const val TAG = "MainActivity"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        askNotificationPermission()
 
         esconderBarrasDoSistema(this)
 
@@ -41,7 +72,10 @@ class MainActivity : AppCompatActivity() {
         val refreshToken = SupabaseClient.getRefreshToken() // Também verificamos o refresh token
 
         if (loggedInUserId != null && sessionToken != null && refreshToken != null) {
-            Log.d("MainActivity", "Usuário já logado. Redirecionando para ProfessionalDashboardActivity.")
+            Log.d(
+                "MainActivity",
+                "Usuário já logado. Redirecionando para ProfessionalDashboardActivity."
+            )
             // --- ALTERADO: Redireciona para ProfessionalDashboardActivity ---
             startActivity(Intent(this, LoginProfissional::class.java))
             finish()
@@ -134,6 +168,25 @@ class MainActivity : AppCompatActivity() {
                 } finally {
                     progressBar.visibility = View.INVISIBLE
                     loginButton.isEnabled = true
+                }
+            }
+        }
+    }
+
+    private fun sendFcmTokenToSupabase(userId: String) {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                Log.w(TAG, "Fetching FCM registration token failed", task.exception)
+                return@addOnCompleteListener
+            }
+            val fcmToken = task.result
+            Log.d(TAG, "FCM Token: $fcmToken")
+            lifecycleScope.launch {
+                try {
+                    SupabaseClient.updateFcmToken(userId, fcmToken)
+                    Log.d(TAG, "FCM Token enviado com sucesso para o usuário $userId")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Erro ao enviar FCM Token para o usuário $userId", e)
                 }
             }
         }
