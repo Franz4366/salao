@@ -33,6 +33,7 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import io.ktor.client.plugins.HttpTimeout
 
 object SupabaseClient {
 
@@ -72,6 +73,11 @@ object SupabaseClient {
                 ignoreUnknownKeys = true
                 isLenient = true
             })
+        }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 15000
+            connectTimeoutMillis = 10000
+            socketTimeoutMillis = 15000
         }
         defaultRequest {
             header("apikey", _supabaseKey)
@@ -115,7 +121,6 @@ object SupabaseClient {
         Log.d("SupabaseClient", "Tokens salvos: Access: ${accessToken.take(5)}..., Refresh: ${refreshToken.take(5)}..., UserID: $userId")
     }
 
-    // Chamado para carregar tokens no início ou para reautenticação
     private fun loadTokensFromPreferences() {
         val sharedPrefs = applicationContext.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
         currentAccessToken = sharedPrefs.getString("session_token", null)
@@ -125,6 +130,25 @@ object SupabaseClient {
             Log.d("SupabaseClient", "Tokens carregados das preferências. Access: ${currentAccessToken!!.take(5)}...")
         } else {
             Log.d("SupabaseClient", "Nenhum token encontrado nas preferências.")
+        }
+    }
+
+    suspend fun ensureValidSession(): Boolean {
+        val refreshToken = currentRefreshToken ?: return false
+
+        return try {
+            val newSession = SupabaseAuthClient().refreshSession(refreshToken)
+            saveTokens(
+                newSession.access_token,
+                newSession.refresh_token,
+                newSession.user.id
+            )
+            Log.d("SupabaseClient", "Sessão renovada automaticamente com sucesso.")
+            true
+        } catch (e: Exception) {
+            Log.e("SupabaseClient", "Erro ao renovar sessão: ${e.message}")
+            clearTokens()
+            false
         }
     }
 
@@ -226,11 +250,14 @@ object SupabaseClient {
         return try {
             Log.d("SupabaseClient", "Buscando agendamentos no Supabase para a data: $data e profissional: ${profissionalId ?: "todos"}")
             val response: HttpResponse = client.get("$supabaseUrl/rest/v1/agendamentos") {
-                parameter("select", "id, cliente_id, data, hora, profissional, comentario")
+                // Certifique-se de que 'profissionalid' aqui corresponde ao nome da coluna real no Supabase
+                // Se o nome da coluna no Supabase for 'profissional_id', você deve usar 'profissional_id' no select também.
+                parameter("select", "id, cliente_id, data, hora, profissional_id, comentario") // Ajuste aqui se necessário
                 parameter("data", "eq.$data")
 
                 if (profissionalId != null) {
-                    parameter("profissional", "eq.$profissionalId")
+                    // AQUI ESTÁ A CORREÇÃO: "profissional_id" deve corresponder ao nome da coluna no seu DB
+                    parameter("profissional_id", "eq.$profissionalId")
                 }
                 header("Authorization", "Bearer $userJwtToken")
             }
@@ -334,6 +361,10 @@ object SupabaseClient {
                 profissionalId = profissionalId,
                 comentario = comentario
             )
+            val jsonToSend = Json.encodeToString(agendamento)
+            Log.d("SupabaseClient", "JSON a ser enviado para agendamento: $jsonToSend")
+
+
             val response: HttpResponse = client.post("$supabaseUrl/rest/v1/agendamentos") {
                 contentType(ContentType.Application.Json)
                 setBody(Json.encodeToString(agendamento))
@@ -342,7 +373,8 @@ object SupabaseClient {
             }
             Log.d("SupabaseClient", "Resposta ao criar agendamento (status): ${response.status}")
             if (!response.status.isSuccess()) {
-                Log.e("SupabaseClient", "Erro detalhado ao criar agendamento: ${response.bodyAsText()}")
+                val errorBody = response.bodyAsText()
+                Log.e("SupabaseClient", "Erro detalhado ao criar agendamento: $errorBody")
             }
 
             response.status.isSuccess()

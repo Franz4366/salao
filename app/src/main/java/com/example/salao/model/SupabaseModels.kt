@@ -13,6 +13,19 @@ data class LoginResponse(
 )
 
 @Serializable
+data class AuthRequest(
+    val email: String,
+    val password: String
+)
+
+@Serializable
+data class User(
+    val id: String,
+    val email: String? = null,
+    @SerialName("email_confirmed_at") val emailConfirmedAt: String? = null
+)
+
+@Serializable
 data class SupabaseUser(
     val id: String,
     val email: String
@@ -41,7 +54,7 @@ data class AgendamentoSupabase(
     @SerialName("cliente_id") val clienteId: String,
     @SerialName("data") val dataAgendamento: String,
     @SerialName("hora") val horaAgendamento: String,
-    @SerialName("profissional") val profissionalId: String,
+    @SerialName("profissional_id") val profissionalId: String,
     val comentario: String? = null
 )
 
@@ -63,15 +76,6 @@ data class ProfileUpdate(
     @SerialName("cargo") val cargo: String? = null,
     @SerialName("photo_url") val fotoUrl: String? = null
 
-)
-
-data class AgendamentoItem(
-    val id: Int?,
-    val clienteNome: String,
-    val data: String,
-    val hora: String,
-    val profissionalNome: String,
-    val comentario: String?
 )
 
 @Serializable

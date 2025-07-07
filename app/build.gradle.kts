@@ -103,7 +103,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.postgrest.kt)
 
-
     implementation (libs.picasso)
     implementation (libs.androidx.cardview)
     implementation (libs.androidx.startup.runtime)

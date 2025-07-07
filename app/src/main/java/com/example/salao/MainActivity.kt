@@ -53,6 +53,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SupabaseClient.initClient(applicationContext)
         setContentView(R.layout.activity_main)
 
         askNotificationPermission()
@@ -62,26 +63,22 @@ class MainActivity : AppCompatActivity() {
         requestNotificationPermission()
         Log.d("MainActivity", "MainActivity onCreate executado.")
 
-        // --- ADICIONADO: Inicializa o SupabaseClient com o contexto da aplicação ---
-        // Isso deve ser feito ANTES de qualquer tentativa de obter tokens.
-        SupabaseClient.initClient(applicationContext)
-
-        // --- ALTERADO: Agora verifica o estado de login através do SupabaseClient ---
         val loggedInUserId = SupabaseClient.getLoggedInUserId()
         val sessionToken = SupabaseClient.getAccessToken()
-        val refreshToken = SupabaseClient.getRefreshToken() // Também verificamos o refresh token
+        val refreshToken = SupabaseClient.getRefreshToken()
 
         if (loggedInUserId != null && sessionToken != null && refreshToken != null) {
-            Log.d(
-                "MainActivity",
-                "Usuário já logado. Redirecionando para ProfessionalDashboardActivity."
-            )
-            // --- ALTERADO: Redireciona para ProfessionalDashboardActivity ---
-            startActivity(Intent(this, LoginProfissional::class.java))
-            finish()
+            lifecycleScope.launch {
+                val sessionValida = SupabaseClient.ensureValidSession()
+                if (sessionValida) {Log.d("MainActivity", "Sessão válida ou renovada. Redirecionando...")
+                    startActivity(Intent(this@MainActivity, LoginProfissional::class.java))
+                    finish()
+                } else {
+                    Log.d("MainActivity", "Não foi possível renovar a sessão. Usuário precisa logar novamente.")
+                }
+            }
             return
         }
-
         setContentView(R.layout.activity_main)
 
         val emailEditText = findViewById<EditText>(R.id.edit_email)
@@ -142,10 +139,9 @@ class MainActivity : AppCompatActivity() {
                         Toast.LENGTH_LONG
                     ).show()
 
-                    // --- ALTERADO: Chama SupabaseClient para salvar os tokens ---
                     SupabaseClient.saveTokens(
                         authResponse.access_token,
-                        authResponse.refresh_token, // Certifique-se de que este campo existe em AuthResponse
+                        authResponse.refresh_token,
                         authResponse.user.id
                     )
 
