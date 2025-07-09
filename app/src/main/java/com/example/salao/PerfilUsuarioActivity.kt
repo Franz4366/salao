@@ -1,6 +1,7 @@
 package com.example.salao
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.ImageView
@@ -10,11 +11,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.Navigation
 import com.squareup.picasso.Picasso
 import com.example.salao.com.example.salao.utils.NavigationManager
 import com.example.salao.model.Profile
 import com.example.salao.model.ProfileUpdate
-import com.example.salao.network.SupabaseClient // Certifique-se de que esta importação está correta
+import com.example.salao.network.SupabaseClient
+import com.example.salao.MainActivity
 import com.example.salao.utils.esconderBarrasDoSistema
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
@@ -30,11 +33,12 @@ class PerfilUsuarioActivity : AppCompatActivity() {
     private lateinit var btnSalvar: MaterialButton
     private lateinit var btnDeslogar: MaterialButton
 
-    // --- REMOVIDO: Não instanciamos mais o SupabaseClient aqui ---
-    // private val supabaseClient = SupabaseClient()
-    // --- REMOVIDO: ID do usuário e token de sessão serão obtidos diretamente do SupabaseClient ---
-    // private var loggedInUserId: String? = null
-    // private var sessionToken: String? = null
+    private fun NavigationToMainActivity() {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -178,21 +182,19 @@ class PerfilUsuarioActivity : AppCompatActivity() {
     }
 
     private fun deslogarUsuario() {
-        handleAuthenticationError() // Esta função já faz o deslogamento completo
+        handleAuthenticationError()
     }
 
     private fun handleAuthenticationError() {
         Log.e("PerfilUsuarioActivity", "Erro de autenticação detectado. Deslogando usuário.")
-        // --- ATUALIZADO: Chame SupabaseClient.clearTokens() para centralizar a limpeza ---
         SupabaseClient.clearTokens()
         mostrarToast("Sessão expirada. Faça login novamente.")
-        NavigationManager.navigateToLogin(this) // Navega para a tela de login
-        finishAffinity() // Fecha todas as atividades na pilha para evitar retorno
+        NavigationToMainActivity()
+        finishAffinity()
     }
 
     private fun setupNavigationIcons() {
         findViewById<ImageView>(R.id.icon_home)?.setOnClickListener {
-            // --- ATUALIZADO: Navega para ProfessionalDashboardActivity, que é a "Home" após o login ---
             NavigationManager.navigateToLogin(this)
         }
         findViewById<ImageView>(R.id.icon_agendar)?.setOnClickListener {
@@ -205,7 +207,6 @@ class PerfilUsuarioActivity : AppCompatActivity() {
             NavigationManager.navigateToCadastroCliente(this)
         }
         findViewById<ImageView>(R.id.icon_user)?.setOnClickListener {
-            // Já está na tela de perfil, não faz nada
         }
     }
 

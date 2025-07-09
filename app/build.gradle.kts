@@ -88,6 +88,8 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
+    implementation(libs.supabase.kt)
+    implementation(libs.firebase.firestore.ktx)
 
     //Testes
     testImplementation(libs.junit)
@@ -102,6 +104,8 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.postgrest.kt)
+    implementation(libs.gotrue)
+
 
     implementation (libs.picasso)
     implementation (libs.androidx.cardview)

@@ -144,13 +144,13 @@ class MainActivity : AppCompatActivity() {
                         authResponse.refresh_token,
                         authResponse.user.id
                     )
+                    sendFcmTokenToSupabase(authResponse.user.id)
 
                     Log.d(
                         "MainActivity",
                         "Dados de login salvos via SupabaseClient. User ID: ${authResponse.user.id}, Token salvo."
                     )
 
-                    // --- ALTERADO: Redireciona para ProfessionalDashboardActivity ---
                     startActivity(Intent(this@MainActivity, LoginProfissional::class.java))
                     finish()
 

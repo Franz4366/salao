@@ -106,7 +106,6 @@ object SupabaseClient {
         return currentUserId
     }
 
-    // Chamado no initClient e após o login (via AuthClient)
     fun saveTokens(accessToken: String, refreshToken: String, userId: String) {
         currentAccessToken = accessToken
         currentRefreshToken = refreshToken

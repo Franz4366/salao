@@ -47,8 +47,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun sendNotification(title: String?, messageBody: String?) {
-        // Intent que será disparada ao clicar na notificação.
-        // Leva o usuário de volta para a MainActivity.
+
         val intent = Intent(this, Agenda::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP) // Limpa a pilha de atividades
         }
@@ -57,10 +56,8 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE // FLAG_IMMUTABLE é obrigatório para API 23+
         )
 
-        // Criar o Notification Channel (necessário para Android 8.0/API 26 e superior)
         createNotificationChannel()
 
-        // Constrói a notificação visual
         val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
@@ -70,31 +67,22 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT) // Define a prioridade da notificação (influencia como é exibida)
 
         with(NotificationManagerCompat.from(this)) {
-            // Verificar permissão de notificação para Android 13 (API 33) e superior
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 if (ActivityCompat.checkSelfPermission(
                         this@MyFirebaseMessagingService,
                         Manifest.permission.POST_NOTIFICATIONS
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
-                    // Se a permissão não foi concedida (no Android 13+), não podemos exibir a notificação.
-                    // VOCÊ PRECISA SOLICITAR ESTA PERMISSÃO EM TEMPO DE EXECUÇÃO NA SUA ACTIVITY PRINCIPAL.
-                    // Por simplicidade e para não bloquear o fluxo aqui, estamos apenas logando.
                     Log.w(TAG, "Permissão POST_NOTIFICATIONS não concedida. Não é possível exibir a notificação.")
                     return
                 }
             }
-            notify(0 /* ID da notificação. Use um ID único se tiver várias notificações. */, notificationBuilder.build())
+            notify(0, notificationBuilder.build())
         }
     }
-
-    /**
-     * Cria um Notification Channel.
-     * Necessário para Android 8.0 (API 26) e superior para agrupar notificações e permitir que o usuário controle.
-     */
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Notificações Gerais do Salão" // Nome visível para o usuário nas configurações do app
+            val name = "Notificações Gerais do Salão"
             val descriptionText = "Canal para notificações importantes do aplicativo Salão, como lembretes de agendamento."
             val importance = NotificationManager.IMPORTANCE_DEFAULT // Importância padrão
             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
